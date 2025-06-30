@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseClient } from '@/lib/supabase'
+import { useFuyouChat } from '@/hooks/useFuyouChat'
+import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
 
 interface OnboardingData {
   is_student: boolean | null
@@ -10,6 +12,8 @@ interface OnboardingData {
   insurance: 'national' | 'employee' | 'none' | null
   company_large: boolean | null
   weekly_hours: number | null
+  fuyou_category?: string | null
+  fuyou_limit?: number | null
 }
 
 const questions = [
@@ -72,10 +76,13 @@ export default function OnboardingWizard() {
     support_type: null,
     insurance: null,
     company_large: null,
-    weekly_hours: null
+    weekly_hours: null,
+    fuyou_category: null,
+    fuyou_limit: null
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { isOpen, openChat, closeChat, handleComplete } = useFuyouChat()
 
   const currentQuestion = questions[currentStep]
   const totalSteps = questions.length
@@ -87,11 +94,11 @@ export default function OnboardingWizard() {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1)
     } else {
-      handleComplete(newData)
+      handleOnboardingComplete(newData)
     }
   }
 
-  const handleComplete = async (finalData: OnboardingData) => {
+  const handleOnboardingComplete = async (finalData: OnboardingData) => {
     setIsLoading(true)
     try {
       const supabase = createSupabaseClient()
@@ -101,10 +108,10 @@ export default function OnboardingWizard() {
         throw new Error('User not authenticated')
       }
 
-      // Calculate fuyou_line based on answers
-      let fuyou_line = 1030000 // Default
-      if (finalData.is_student) {
-        fuyou_line = 1300000 // Student limit is higher
+      // Calculate fuyou_line based on answers or chat result
+      let fuyou_line = finalData.fuyou_limit || 1030000 // Use chat result or default
+      if (!finalData.fuyou_limit && finalData.is_student) {
+        fuyou_line = 1300000 // Student limit is higher if no chat result
       }
 
       const profileData = {
@@ -139,9 +146,30 @@ export default function OnboardingWizard() {
     }
   }
 
-  const handleUnknown = () => {
-    // TODO: Open BottomSheet chat
-    alert('わからない場合のサポート機能は後日実装予定です')
+  const handleUnknown = async () => {
+    const isStudent = data.is_student ?? true // Default to student if not set
+    const result = await openChat(isStudent)
+    
+    if (result) {
+      // Update data with classification result
+      const newData = { 
+        ...data, 
+        fuyou_category: result.category,
+        fuyou_limit: result.limit
+      }
+      setData(newData)
+      
+      // Auto-complete the onboarding with smart defaults based on classification
+      const finalData: OnboardingData = {
+        ...newData,
+        support_type: result.category === '扶養外' ? 'none' as const : 'partial' as const,
+        insurance: 'employee' as const, // Most common case
+        company_large: false,  // Conservative estimate
+        weekly_hours: data.weekly_hours || 15 // Default moderate hours
+      }
+      
+      handleOnboardingComplete(finalData)
+    }
   }
 
   if (isLoading) {
@@ -222,6 +250,14 @@ export default function OnboardingWizard() {
           </div>
         </div>
       </div>
+
+      {/* Chat Modal */}
+      <UnknownFuyouChat
+        isOpen={isOpen}
+        isStudent={data.is_student ?? true}
+        onClose={closeChat}
+        onComplete={handleComplete}
+      />
     </div>
   )
 }

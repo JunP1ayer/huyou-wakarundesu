@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { createSupabaseClient, UserProfile, UserStats } from '@/lib/supabase'
-import { AlertTriangle, Settings, Banknote, Clock } from 'lucide-react'
+import { AlertTriangle, Settings, Banknote, Clock, Info } from 'lucide-react'
 import ExportCsvButton from '@/components/ExportCsvButton'
 import RequestPermission from '@/components/notifications/RequestPermission'
 import { useThresholdNotifier } from '@/hooks/useThresholdNotifier'
 import { getThresholdStatus } from '@/utils/threshold'
+import { calculateRemaining } from '@/lib/fuyouClassifier'
 
 interface DashboardData {
   profile: UserProfile
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [bankConnected, setBankConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [showWelcomeToast, setShowWelcomeToast] = useState(false)
 
   // Threshold notification monitoring
   const { showTestNotification } = useThresholdNotifier(
@@ -129,6 +131,13 @@ export default function Dashboard() {
         setData({ profile, stats: newStats })
       } else {
         setData({ profile, stats })
+      }
+      
+      // Show welcome toast for new users or users with classification results
+      const isNewUser = !stats || stats.ytd_income === 0
+      if (isNewUser && profile.fuyou_line) {
+        setShowWelcomeToast(true)
+        setTimeout(() => setShowWelcomeToast(false), 6000) // Hide after 6 seconds
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
@@ -284,6 +293,22 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Category Info */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6">
+            <div className="flex items-start">
+              <Info className="h-6 w-6 text-blue-600 mr-3 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-blue-900 mb-2">あなたの扶養区分</h3>
+                <p className="text-sm text-blue-800 mb-2">
+                  上限額: <strong>{formatCurrency(profile.fuyou_line)}</strong>
+                </p>
+                <p className="text-xs text-blue-700">
+                  あと <strong>{formatCurrency(calculateRemaining(stats.ytd_income, profile.fuyou_line))}</strong> 稼ぐことができます
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Quick Stats */}
           <div className="bg-white rounded-2xl shadow-xl p-6">
             <h3 className="font-bold text-gray-900 mb-4">今月の概要</h3>
@@ -377,6 +402,31 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Welcome Toast */}
+      {showWelcomeToast && (
+        <div className="fixed top-4 left-4 right-4 z-50 max-w-md mx-auto">
+          <div className="bg-green-600 text-white p-4 rounded-xl shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-bold mb-1">設定完了！</h4>
+                <p className="text-sm">
+                  あなたの上限は <strong>{data ? formatCurrency(data.profile.fuyou_line) : ''}</strong> です。
+                  あと <strong>{data ? formatCurrency(calculateRemaining(data.stats.ytd_income, data.profile.fuyou_line)) : ''}</strong> 稼げます 🎉
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowWelcomeToast(false)}
+                className="text-white hover:text-green-200 ml-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

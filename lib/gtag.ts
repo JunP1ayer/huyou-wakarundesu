@@ -106,6 +106,33 @@ export const trackEvent = {
       custom_parameter_1: value,
     })
   },
+
+  // Unknown Fuyou Chat Events
+  chatUnknownStart: () => {
+    event('chat_unknown_start', {
+      event_category: 'onboarding',
+      event_label: 'unknown_support',
+      custom_parameter_1: 'chat_modal_open',
+    })
+  },
+
+  chatUnknownComplete: (category: string, limit: number) => {
+    event('chat_unknown_complete', {
+      event_category: 'onboarding',
+      event_label: 'classification_success',
+      custom_parameter_1: category,
+      value: limit,
+    })
+  },
+
+  chatUnknownCancel: (questionIndex: number) => {
+    event('chat_unknown_cancel', {
+      event_category: 'onboarding',
+      event_label: 'user_cancelled',
+      value: questionIndex,
+      custom_parameter_1: 'modal_close',
+    })
+  },
 }
 
 // Debug logging in development
