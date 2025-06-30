@@ -201,7 +201,14 @@ export default function Dashboard() {
       <div className="bg-white shadow-sm px-4 py-6">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">扶養わかるんです</h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-xl font-bold text-gray-900">扶養わかるんです</h1>
+              {process.env.NEXT_PUBLIC_APP_VERSION && (
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+                  v{process.env.NEXT_PUBLIC_APP_VERSION}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-600">
               {profile.is_student ? '学生' : '一般'}扶養
             </p>

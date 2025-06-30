@@ -31,8 +31,8 @@ const questions = [
     title: '扶養の種類は？',
     description: '現在の扶養状況を教えてください',
     options: [
-      { value: 'full', label: '完全扶養（収入なし）' },
-      { value: 'partial', label: '部分扶養（少し収入あり）' },
+      { value: 'full', label: '完全扶養（年間収入ゼロ〜数万円）' },
+      { value: 'partial', label: '103万円以内（アルバイト収入あり）' },
       { value: 'none', label: '扶養に入っていない' }
     ]
   },
@@ -41,8 +41,8 @@ const questions = [
     title: '保険の種類は？',
     description: '加入している健康保険を教えてください',
     options: [
-      { value: 'national', label: '国民健康保険' },
-      { value: 'employee', label: '会社の健康保険' },
+      { value: 'national', label: '国民健康保険（自分で加入）' },
+      { value: 'employee', label: '親の健康保険（扶養として加入）' },
       { value: 'none', label: 'よくわからない' }
     ]
   },
@@ -81,6 +81,7 @@ export default function OnboardingWizard() {
     fuyou_limit: null
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const { isOpen, openChat, closeChat, handleComplete } = useFuyouChat()
 
@@ -134,7 +135,7 @@ export default function OnboardingWizard() {
       router.push('/dashboard')
     } catch (error) {
       console.error('Error saving profile:', error)
-      alert('プロフィールの保存中にエラーが発生しました')
+      setError('プロフィールの保存中にエラーが発生しました。再度お試しください。')
     } finally {
       setIsLoading(false)
     }
@@ -225,6 +226,11 @@ export default function OnboardingWizard() {
               <p className="text-gray-600 leading-relaxed">
                 {currentQuestion.description}
               </p>
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
