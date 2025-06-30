@@ -1,7 +1,26 @@
-import type { NextConfig } from "next";
+const withPWA = require("next-pwa")({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  sw: "sw-custom.js",
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "offlineCache",
+        expiration: {
+          maxEntries: 200,
+        },
+      },
+    },
+  ],
+});
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  experimental: {
+    // Enable experimental features if needed
+  },
 };
 
-export default nextConfig;
+module.exports = withPWA(nextConfig);

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { createSupabaseClient, UserProfile, UserStats } from '@/lib/supabase'
 import { AlertTriangle, Settings, Banknote, Clock } from 'lucide-react'
 import ExportCsvButton from '@/components/ExportCsvButton'
+import RequestPermission from '@/components/notifications/RequestPermission'
+import { useThresholdNotifier } from '@/hooks/useThresholdNotifier'
+import { getThresholdStatus } from '@/utils/threshold'
 
 interface DashboardData {
   profile: UserProfile
@@ -17,6 +20,12 @@ export default function Dashboard() {
   const [bankConnected, setBankConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+
+  // Threshold notification monitoring
+  const { showTestNotification } = useThresholdNotifier(
+    data?.stats.ytd_income || 0, 
+    data?.profile.fuyou_line || 1030000
+  )
 
   useEffect(() => {
     fetchDashboardData()
@@ -155,6 +164,9 @@ export default function Dashboard() {
   const remainingPercentage = (stats.remaining / profile.fuyou_line) * 100
   const isRiskZone = remainingPercentage < 10
   const isWarningZone = remainingPercentage >= 10 && remainingPercentage < 30
+  
+  // Get threshold status for notifications
+  const thresholdStatus = getThresholdStatus(stats.ytd_income, profile.fuyou_line)
 
   const getProgressColor = () => {
     if (isRiskZone) return 'bg-red-500'
@@ -293,6 +305,25 @@ export default function Dashboard() {
                 <span className="font-medium text-indigo-600">{formatCurrency(stats.ytd_income)}</span>
               </div>
             </div>
+          </div>
+
+          {/* Notifications */}
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <h3 className="font-bold text-gray-900 mb-4">通知設定</h3>
+            <RequestPermission />
+            {thresholdStatus.isOverThreshold && (
+              <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-sm text-orange-800">
+                  <strong>通知テスト:</strong>
+                </p>
+                <button 
+                  onClick={showTestNotification}
+                  className="mt-2 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200"
+                >
+                  テスト通知を送信
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Data Export */}
