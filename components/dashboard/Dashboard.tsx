@@ -8,6 +8,7 @@ import RequestPermission from '@/components/notifications/RequestPermission'
 import { useThresholdNotifier } from '@/hooks/useThresholdNotifier'
 import { getThresholdStatus } from '@/utils/threshold'
 import { calculateRemaining } from '@/lib/fuyouClassifier'
+import { useToastFallback } from '@/components/notifications/Toast'
 
 interface DashboardData {
   profile: UserProfile
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [showWelcomeToast, setShowWelcomeToast] = useState(false)
+  const { showToast, ToastContainer } = useToastFallback()
 
   // Threshold notification monitoring
   const { showTestNotification } = useThresholdNotifier(
@@ -48,7 +50,7 @@ export default function Dashboard() {
       window.location.href = authUrl
     } catch (error) {
       console.error('Error connecting bank:', error)
-      alert('銀行連携の開始中にエラーが発生しました')
+      showToast('銀行連携の開始中にエラーが発生しました', 'error')
     } finally {
       setIsConnecting(false)
     }
@@ -66,13 +68,13 @@ export default function Dashboard() {
       }
       
       const result = await response.json()
-      alert(`${result.syncedTransactions}件の取引を同期しました`)
+      showToast(`${result.syncedTransactions}件の取引を同期しました`, 'success')
       
       // Refresh dashboard data
       await fetchDashboardData()
     } catch (error) {
       console.error('Error syncing transactions:', error)
-      alert('取引の同期中にエラーが発生しました')
+      showToast('取引の同期中にエラーが発生しました', 'error')
     } finally {
       setIsSyncing(false)
     }
@@ -434,6 +436,8 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      
+      <ToastContainer />
     </div>
   )
 }

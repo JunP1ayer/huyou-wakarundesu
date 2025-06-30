@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseClient, UserProfile } from '@/lib/supabase'
 import { ArrowLeft, User, DollarSign, Repeat, Trash2, RefreshCw } from 'lucide-react'
+import { useToastFallback } from '@/components/notifications/Toast'
 
 export default function Settings() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -12,6 +13,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [bankConnected, setBankConnected] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
+  const { showToast, ToastContainer } = useToastFallback()
   const router = useRouter()
 
   const fetchProfile = async () => {
@@ -61,7 +63,7 @@ export default function Settings() {
 
     const wage = parseInt(hourlyWage)
     if (isNaN(wage) || wage < 100 || wage > 10000) {
-      alert('時給は100円〜10,000円の間で入力してください')
+      showToast('時給は100円〜10,000円の間で入力してください', 'warning')
       return
     }
 
@@ -75,11 +77,11 @@ export default function Settings() {
 
       if (error) throw error
 
-      alert('時給を更新しました')
+      showToast('時給を更新しました', 'success')
       setProfile({ ...profile, hourly_wage: wage })
     } catch (error) {
       console.error('Error updating hourly wage:', error)
-      alert('時給の更新中にエラーが発生しました')
+      showToast('時給の更新中にエラーが発生しました', 'error')
     } finally {
       setSaving(false)
     }
@@ -110,10 +112,10 @@ export default function Settings() {
       if (error) throw error
 
       setBankConnected(false)
-      alert('銀行連携を解除しました')
+      showToast('銀行連携を解除しました', 'success')
     } catch (error) {
       console.error('Error disconnecting bank:', error)
-      alert('銀行連携の解除中にエラーが発生しました')
+      showToast('銀行連携の解除中にエラーが発生しました', 'error')
     } finally {
       setIsDisconnecting(false)
     }
@@ -133,7 +135,7 @@ export default function Settings() {
       window.location.href = authUrl
     } catch (error) {
       console.error('Error connecting bank:', error)
-      alert('銀行連携の開始中にエラーが発生しました')
+      showToast('銀行連携の開始中にエラーが発生しました', 'error')
     }
   }
 
@@ -316,6 +318,8 @@ export default function Settings() {
           </div>
         </div>
       </div>
+      
+      <ToastContainer />
     </div>
   )
 }

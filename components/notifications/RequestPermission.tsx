@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import { Bell, BellOff, Settings } from 'lucide-react'
 import { trackEvent } from '@/lib/gtag'
+import { useToastFallback } from '@/components/notifications/Toast'
 
 export default function RequestPermission() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [isSupported, setIsSupported] = useState(false)
+  const { showToast, ToastContainer } = useToastFallback()
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -89,7 +91,7 @@ export default function RequestPermission() {
           <button
             onClick={() => {
               // Guide to browser settings
-              alert('ブラウザのアドレスバー左側の🔒アイコンをクリックし、通知を「許可」に変更してください')
+              showToast('ブラウザのアドレスバー左側の🔒アイコンをクリックし、通知を「許可」に変更してください', 'info')
             }}
             className="flex items-center text-xs text-red-600 hover:text-red-800"
           >
@@ -102,7 +104,8 @@ export default function RequestPermission() {
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+    <>
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <Bell className="h-5 w-5 text-blue-600 mr-2" />
@@ -122,6 +125,8 @@ export default function RequestPermission() {
           許可する
         </button>
       </div>
-    </div>
+      </div>
+      <ToastContainer />
+    </>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle, X, CheckCircle, Info } from 'lucide-react'
 
 interface ToastProps {
   message: string
-  type?: 'warning' | 'error' | 'info'
+  type?: 'warning' | 'error' | 'info' | 'success'
   duration?: number
   onClose?: () => void
 }
@@ -37,6 +37,8 @@ export default function Toast({
         return 'bg-red-50 border-red-200 text-red-800'
       case 'info':
         return 'bg-blue-50 border-blue-200 text-blue-800'
+      case 'success':
+        return 'bg-green-50 border-green-200 text-green-800'
       default:
         return 'bg-yellow-50 border-yellow-200 text-yellow-800'
     }
@@ -47,6 +49,10 @@ export default function Toast({
       case 'warning':
       case 'error':
         return <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+      case 'success':
+        return <CheckCircle className="h-5 w-5 flex-shrink-0" />
+      case 'info':
+        return <Info className="h-5 w-5 flex-shrink-0" />
       default:
         return <AlertTriangle className="h-5 w-5 flex-shrink-0" />
     }
@@ -80,10 +86,10 @@ export function useToastFallback() {
   const [toasts, setToasts] = useState<Array<{
     id: string
     message: string
-    type: 'warning' | 'error' | 'info'
+    type: 'warning' | 'error' | 'info' | 'success'
   }>>([])
 
-  const showToast = (message: string, type: 'warning' | 'error' | 'info' = 'warning') => {
+  const showToast = (message: string, type: 'warning' | 'error' | 'info' | 'success' = 'warning') => {
     const id = Math.random().toString(36).substring(2, 9)
     setToasts(prev => [...prev, { id, message, type }])
   }
