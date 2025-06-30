@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseClient, UserProfile, UserStats } from '@/lib/supabase'
 import { AlertTriangle, Settings, Banknote, Clock } from 'lucide-react'
+import ExportCsvButton from '@/components/ExportCsvButton'
 
 interface DashboardData {
   profile: UserProfile
@@ -291,6 +292,19 @@ export default function Dashboard() {
                 <span className="text-gray-600">今年の収入</span>
                 <span className="font-medium text-indigo-600">{formatCurrency(stats.ytd_income)}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Data Export */}
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-900">データエクスポート</h3>
+                <p className="text-sm text-gray-600">
+                  収入データをCSVファイルでダウンロード
+                </p>
+              </div>
+              <ExportCsvButton />
             </div>
           </div>
 
