@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Bell, BellOff, Settings } from 'lucide-react'
+import { trackEvent } from '@/lib/gtag'
 
 export default function RequestPermission() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
@@ -20,6 +21,9 @@ export default function RequestPermission() {
     try {
       const result = await Notification.requestPermission()
       setPermission(result)
+      
+      // Track permission result
+      trackEvent.notificationPermission(result === 'granted')
       
       if (result === 'granted') {
         // Show test notification

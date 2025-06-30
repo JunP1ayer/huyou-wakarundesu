@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { isOverThreshold, getThresholdStatus } from '@/utils/threshold'
+import { trackEvent } from '@/lib/gtag'
 
 interface NotificationOptions {
   title: string
@@ -47,6 +48,9 @@ export function useThresholdNotifier(income: number, limit: number = 1030000) {
 
   const showThresholdNotification = async (percentage: number, income: number, limit: number) => {
     try {
+      // Track notification show event
+      trackEvent.notificationShow(percentage, income)
+      
       // Try to use Service Worker if available
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready
@@ -88,6 +92,9 @@ export function useThresholdNotifier(income: number, limit: number = 1030000) {
       })
 
       notification.onclick = () => {
+        // Track notification click event
+        trackEvent.notificationClick(percentage)
+        
         window.focus()
         notification.close()
         // Navigate to dashboard if not already there

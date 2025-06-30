@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { GoogleAnalytics } from 'nextjs-google-analytics';
+import { GA_ID } from '@/lib/gtag';
+import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,7 +56,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        {GA_ID && <GoogleAnalytics trackPageViews />}
+        <ServiceWorkerTracker />
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

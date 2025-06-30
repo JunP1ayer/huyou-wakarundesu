@@ -5,48 +5,68 @@ import { Download } from 'lucide-react'
 import { saveAs } from 'file-saver'
 import { createSupabaseClient } from '@/lib/supabase'
 import { transactionsToCsv, generateCsvFilename } from '@/lib/csv'
+import { trackEvent } from '@/lib/gtag'
+import { monitorApiCall, addBreadcrumb } from '@/lib/sentry'
 
 export default function ExportCsvButton() {
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExport = async () => {
     setIsExporting(true)
+    
     try {
-      const supabase = createSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      addBreadcrumb('CSV export started', 'user_action', 'info')
       
-      if (!user) {
-        alert('ログインが必要です')
-        return
-      }
+      await monitorApiCall('csv_export', async () => {
+        const supabase = createSupabaseClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+          alert('ログインが必要です')
+          addBreadcrumb('CSV export failed: no user', 'auth', 'warning')
+          return
+        }
 
-      // Fetch all transactions for the user
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
+        // Fetch all transactions for the user
+        const { data: transactions, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching transactions:', error)
-        alert('データの取得中にエラーが発生しました')
-        return
-      }
+        if (error) {
+          console.error('Error fetching transactions:', error)
+          addBreadcrumb('Database query failed', 'database', 'error', { error: error.message })
+          alert('データの取得中にエラーが発生しました')
+          throw error
+        }
 
-      if (!transactions || transactions.length === 0) {
-        alert('エクスポートするデータがありません')
-        return
-      }
+        if (!transactions || transactions.length === 0) {
+          alert('エクスポートするデータがありません')
+          addBreadcrumb('CSV export: no data', 'user_action', 'info')
+          return
+        }
 
-      // Convert to CSV and download
-      const csvContent = transactionsToCsv(transactions)
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const filename = generateCsvFilename()
-      
-      saveAs(blob, filename)
-      
-      // Show success message
-      alert(`${transactions.length}件のデータをCSVファイル「${filename}」としてダウンロードしました`)
+        // Convert to CSV and download
+        const csvContent = transactionsToCsv(transactions)
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const filename = generateCsvFilename()
+        
+        saveAs(blob, filename)
+        
+        // Track CSV export event
+        trackEvent.csvExport(transactions.length)
+        addBreadcrumb('CSV export completed', 'user_action', 'info', { 
+          recordCount: transactions.length,
+          filename 
+        })
+        
+        // Show success message
+        alert(`${transactions.length}件のデータをCSVファイル「${filename}」としてダウンロードしました`)
+      }, {
+        operation: 'csv_export',
+        userType: 'authenticated'
+      })
       
     } catch (error) {
       console.error('Error during CSV export:', error)
