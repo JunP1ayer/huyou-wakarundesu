@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { questions, AnswerMap } from '@/lib/questionSchema'
-import { classifyFuyou } from '@/lib/fuyouClassifier'
 import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { trackEvent } from '@/lib/gtag'
 import * as Sentry from '@sentry/nextjs'
+import { useToastFallback } from '@/components/notifications/Toast'
 
 interface UnknownFuyouChatProps {
   isOpen: boolean
@@ -28,6 +28,8 @@ export default function UnknownFuyouChat({
     month88k: null
   })
   const [inputValue, setInputValue] = useState('')
+  const [isClassifying, setIsClassifying] = useState(false)
+  const { showToast, ToastContainer } = useToastFallback()
 
   const currentQuestion = questions[currentQuestionIndex]
   const isLastQuestion = currentQuestionIndex === questions.length - 1
@@ -56,33 +58,63 @@ export default function UnknownFuyouChat({
 
   if (!isOpen) return null
 
-  const handleAnswer = (value: number | boolean) => {
+  const handleAnswer = async (value: number | boolean) => {
     const newAnswers = { ...answers, [currentQuestion.id]: value }
     setAnswers(newAnswers)
 
     if (isLastQuestion) {
-      // Calculate classification and complete
-      const result = classifyFuyou(newAnswers, isStudent)
+      // Call OpenAI API for classification
+      setIsClassifying(true)
       
-      // Track completion
-      trackEvent.chatUnknownComplete(result.category, result.limit)
-      Sentry.addBreadcrumb({
-        message: 'Unknown fuyou chat completed',
-        level: 'info',
-        data: { 
-          category: result.category, 
-          limit: result.limit,
-          // Mask sensitive data
-          maskedAnswers: {
-            hasIncome: newAnswers.estIncome !== null,
-            hasInsurance: newAnswers.inParentIns !== null,
-            hasHours: newAnswers.weeklyHours !== null,
-            hasMonthlyLimit: newAnswers.month88k !== null
-          }
+      try {
+        const response = await fetch('/api/classifyFuyou', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            answers: newAnswers,
+            isStudent
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
-      })
-      
-      onComplete(result)
+
+        const result: FuyouClassificationResult = await response.json()
+        
+        // Track completion
+        trackEvent.chatUnknownComplete(result.category, result.limit)
+        Sentry.addBreadcrumb({
+          message: 'OpenAI classification completed',
+          level: 'info',
+          data: { 
+            category: result.category, 
+            limit: result.limit,
+            // Mask sensitive data
+            maskedAnswers: {
+              hasIncome: newAnswers.estIncome !== null,
+              hasInsurance: newAnswers.inParentIns !== null,
+              hasHours: newAnswers.weeklyHours !== null,
+              hasMonthlyLimit: newAnswers.month88k !== null
+            }
+          }
+        })
+        
+        onComplete(result)
+      } catch (error) {
+        console.error('Classification error:', error)
+        
+        // Track error
+        Sentry.captureException(error, {
+          tags: { section: 'fuyou_chat_classification' }
+        })
+        
+        showToast('分類処理中にエラーが発生しました。もう一度お試しください。', 'error')
+      } finally {
+        setIsClassifying(false)
+      }
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       setInputValue('')
@@ -109,13 +141,15 @@ export default function UnknownFuyouChat({
         <div className="space-y-3">
           <button
             onClick={() => handleAnswer(true)}
-            className="w-full p-4 text-left bg-green-50 hover:bg-green-100 border-2 border-green-200 hover:border-green-300 rounded-xl transition-all duration-200 font-medium text-green-900"
+            disabled={isClassifying}
+            className="w-full p-4 text-left bg-green-50 hover:bg-green-100 border-2 border-green-200 hover:border-green-300 rounded-xl transition-all duration-200 font-medium text-green-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             はい
           </button>
           <button
             onClick={() => handleAnswer(false)}
-            className="w-full p-4 text-left bg-red-50 hover:bg-red-100 border-2 border-red-200 hover:border-red-300 rounded-xl transition-all duration-200 font-medium text-red-900"
+            disabled={isClassifying}
+            className="w-full p-4 text-left bg-red-50 hover:bg-red-100 border-2 border-red-200 hover:border-red-300 rounded-xl transition-all duration-200 font-medium text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             いいえ
           </button>
@@ -147,10 +181,10 @@ export default function UnknownFuyouChat({
           </div>
           <button
             onClick={handleNumberSubmit}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || isClassifying}
             className="w-full p-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl font-medium transition-all duration-200"
           >
-            回答する
+            {isClassifying ? '分析中...' : '回答する'}
           </button>
         </div>
       )
@@ -206,6 +240,17 @@ export default function UnknownFuyouChat({
 
         {/* Question */}
         <div className="p-6">
+          {isClassifying && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                <div className="text-sm text-blue-800">
+                  <strong>AI が分析中...</strong>
+                  <p className="text-xs mt-1">あなたの扶養区分を判定しています</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {currentQuestion.text}
@@ -217,10 +262,10 @@ export default function UnknownFuyouChat({
             )}
           </div>
 
-          {renderQuestionInput()}
+          {!isClassifying && renderQuestionInput()}
 
           {/* Back button */}
-          {currentQuestionIndex > 0 && (
+          {currentQuestionIndex > 0 && !isClassifying && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <button
                 onClick={handleBack}
@@ -232,6 +277,8 @@ export default function UnknownFuyouChat({
           )}
         </div>
       </div>
+      
+      <ToastContainer />
     </div>
   )
 }

@@ -133,6 +133,26 @@ export const trackEvent = {
       custom_parameter_1: 'modal_close',
     })
   },
+
+  // OpenAI Classification Events
+  openaiClassifySuccess: (category: string, limitIncome: number) => {
+    event('openai_classify_success', {
+      event_category: 'ai_classification',
+      event_label: 'gpt_classification',
+      custom_parameter_1: category,
+      value: limitIncome,
+      custom_parameter_2: 'classification_completed',
+    })
+  },
+
+  openaiClassifyError: (errorMessage?: string) => {
+    event('openai_classify_error', {
+      event_category: 'ai_classification',
+      event_label: 'gpt_error',
+      custom_parameter_1: errorMessage || 'unknown_error',
+      custom_parameter_2: 'classification_failed',
+    })
+  },
 }
 
 // Debug logging in development
