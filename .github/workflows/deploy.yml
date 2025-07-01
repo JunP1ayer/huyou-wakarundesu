@@ -37,6 +37,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NEXT_PUBLIC_APP_VERSION: 1.1.0-openai
+          # Allow build to continue without secrets for CI testing
+          CI: true
           
   deploy-production:
     name: Deploy to Production

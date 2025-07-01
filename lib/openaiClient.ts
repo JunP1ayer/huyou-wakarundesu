@@ -1,12 +1,18 @@
 import OpenAI from 'openai'
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY is required')
+// Only check for API key at runtime, not build time
+const getOpenAIClient = () => {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is required')
+  }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
 }
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+export const openai = process.env.NODE_ENV === 'production' || process.env.OPENAI_API_KEY 
+  ? getOpenAIClient() 
+  : null
 
 export type FuyouClassificationResult = {
   category: '103万円扶養' | '106万円社保' | '130万円社保外' | '扶養外'
@@ -23,6 +29,9 @@ export async function classifyFuyouWithAI(
   },
   isStudent: boolean
 ): Promise<FuyouClassificationResult> {
+  // Ensure OpenAI client is available
+  const client = openai || getOpenAIClient()
+  
   const prompt = `
 あなたは日本の税法と社会保険制度に詳しいアシスタントです。
 以下の情報をもとに扶養区分を判定してください。
@@ -48,7 +57,7 @@ export async function classifyFuyouWithAI(
 }
 `
 
-  const completion = await openai.chat.completions.create({
+  const completion = await client.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0,
