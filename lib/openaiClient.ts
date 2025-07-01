@@ -6,7 +6,8 @@ let openaiClient: OpenAI | null = null
 const getOpenAIClient = () => {
   if (!openaiClient) {
     if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is required')
+      console.error('OPENAI_API_KEY is not configured - AI classification will not work')
+      return null
     }
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -35,6 +36,16 @@ export async function classifyFuyouWithAI(
 ): Promise<FuyouClassificationResult> {
   // Get OpenAI client (lazy initialization)
   const client = getOpenAIClient()
+  
+  if (!client) {
+    // Return fallback result when OpenAI is not available
+    console.warn('OpenAI client not available - returning fallback classification')
+    return {
+      category: '103万円扶養',
+      limitIncome: 1030000,
+      reason: 'OpenAI APIが利用できないため、デフォルトの103万円扶養を適用しました'
+    }
+  }
   
   const prompt = `
 あなたは日本の税法と社会保険制度に詳しいアシスタントです。

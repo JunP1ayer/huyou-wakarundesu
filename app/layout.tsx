@@ -4,6 +4,7 @@ import { GoogleAnalytics } from 'nextjs-google-analytics';
 import { GA_ID } from '@/lib/gtag';
 import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import DemoModeBanner from '@/components/DemoModeBanner';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,6 +59,7 @@ export default function RootLayout({
       >
         {GA_ID && <GoogleAnalytics trackPageViews />}
         <ServiceWorkerTracker />
+        <DemoModeBanner />
         <ErrorBoundary>
           {children}
         </ErrorBoundary>

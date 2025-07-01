@@ -10,6 +10,7 @@ import { getThresholdStatus } from '@/utils/threshold'
 import { calculateRemaining } from '@/lib/fuyouClassifier'
 import { useToastFallback } from '@/components/notifications/Toast'
 import LoginPrompt from '@/components/auth/LoginPrompt'
+import { demoStorage } from '@/lib/demo-data'
 
 interface DashboardData {
   profile: UserProfile
@@ -38,6 +39,12 @@ export default function Dashboard() {
   }, [])
 
   const handleBankConnect = async () => {
+    // Check if in demo mode
+    if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+      showToast('デモモードでは銀行連携は利用できません', 'warning')
+      return
+    }
+    
     setIsConnecting(true)
     try {
       const response = await fetch('/api/moneytree/connect', {
@@ -59,6 +66,12 @@ export default function Dashboard() {
   }
 
   const handleSyncTransactions = async () => {
+    // Check if in demo mode
+    if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+      showToast('デモモードでは同期機能は利用できません', 'warning')
+      return
+    }
+    
     setIsSyncing(true)
     try {
       const response = await fetch('/api/moneytree/sync', {
@@ -84,6 +97,17 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      // Check if we're in demo mode
+      if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+        // Use demo data
+        const profile = demoStorage.getProfile()
+        const stats = demoStorage.getStats()
+        setData({ profile, stats })
+        setBankConnected(false) // No bank connection in demo mode
+        setLoading(false)
+        return
+      }
+      
       const authClient = await getAuthenticatedSupabaseClient()
       
       if (!authClient) {

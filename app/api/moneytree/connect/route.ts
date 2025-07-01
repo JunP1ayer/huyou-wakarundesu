@@ -6,6 +6,11 @@ export async function POST() {
   try {
     // Verify user is authenticated
     const supabase = await createSupabaseServerClient()
+    
+    if (!supabase) {
+      return NextResponse.json({ error: 'Failed to initialize database connection' }, { status: 500 })
+    }
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {

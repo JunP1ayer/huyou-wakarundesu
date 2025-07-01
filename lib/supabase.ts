@@ -1,8 +1,15 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Development fallback values - DO NOT USE IN PRODUCTION
+const DEVELOPMENT_SUPABASE_URL = 'https://xyzcompany.supabase.co'
+const DEVELOPMENT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5emNvbXBhbnkiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYyNTY3MjQwMCwiZXhwIjoxOTQxMjQ4NDAwfQ.AQcFUykdFmIDXGuQNL1cGayHoYqBsyFQSy2vSaGWiSU'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (process.env.NODE_ENV === 'development' ? DEVELOPMENT_SUPABASE_URL : '')
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || (process.env.NODE_ENV === 'development' ? DEVELOPMENT_ANON_KEY : '')
+
+// Check if we're in demo mode (no real Supabase connection)
+export const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NODE_ENV === 'production'
 
 // Global singleton instance to prevent multiple GoTrueClient warnings
 let globalSupabaseInstance: SupabaseClient | null = null
@@ -18,11 +25,22 @@ export function createSupabaseClient(): SupabaseClient | null {
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // During build time or when env vars are missing, return null to prevent crash
+    // During build time or when env vars are missing
     if (typeof window === 'undefined') {
       console.warn('Supabase client creation skipped during build - missing env vars')
       return null
     }
+    
+    // In production without env vars, return a mock client for demo mode
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('Running in DEMO MODE - No Supabase credentials provided')
+      // Return null but set demo mode flag
+      if (typeof window !== 'undefined') {
+        (window as typeof window & { __demo_mode?: boolean }).__demo_mode = true
+      }
+      return null
+    }
+    
     console.error('Supabase URL and anon key are required')
     return null
   }
@@ -45,6 +63,18 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
   supabase: SupabaseClient
   user: { id: string; email?: string }
 } | null> {
+  // Check for demo mode
+  if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+    // Return a mock authenticated user for demo mode
+    return {
+      supabase: {} as SupabaseClient, // Mock client
+      user: {
+        id: 'demo-user-001',
+        email: 'demo@example.com'
+      }
+    }
+  }
+  
   const supabase = createSupabaseClient()
   
   if (!supabase) {

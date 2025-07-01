@@ -21,6 +21,16 @@ const nextConfig = {
   experimental: {
     // Enable experimental features if needed
   },
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: '/manifest.json',
+          destination: '/api/manifest',
+        },
+      ],
+    }
+  },
   async headers() {
     return [
       {

@@ -23,6 +23,12 @@ export async function GET(request: NextRequest) {
     
     // Get user from Supabase auth (assuming user is already authenticated)
     const supabase = await createSupabaseServerClient()
+    
+    if (!supabase) {
+      console.error('Supabase client not available - missing environment variables')
+      return NextResponse.redirect(new URL('/dashboard?error=config_error', request.url))
+    }
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
@@ -63,6 +69,11 @@ export async function GET(request: NextRequest) {
 async function syncUserTransactions(userId: string, accessToken: string) {
   try {
     const supabase = await createSupabaseServerClient()
+    
+    if (!supabase) {
+      console.error('Supabase client not available - skipping transaction sync')
+      return
+    }
     
     // Get all income transactions for the current year
     const accountsWithTransactions = await moneytreeClient.getCurrentYearIncomeTransactions(accessToken)
