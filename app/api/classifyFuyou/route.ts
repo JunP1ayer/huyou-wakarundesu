@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { classifyFuyouWithAI, type FuyouClassificationResult } from '@/lib/openaiClient'
+import { type FuyouClassificationResult } from '@/lib/openaiClient'
 import { trackEvent } from '@/lib/gtag'
 import * as Sentry from '@sentry/nextjs'
 
@@ -30,6 +30,9 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Dynamically import OpenAI function to avoid build-time initialization
+    const { classifyFuyouWithAI } = await import('@/lib/openaiClient')
+    
     // Call OpenAI API
     const result: FuyouClassificationResult = await classifyFuyouWithAI(answers, isStudent)
 

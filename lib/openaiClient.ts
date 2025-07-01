@@ -1,18 +1,22 @@
 import OpenAI from 'openai'
 
-// Only check for API key at runtime, not build time
+// Lazy initialization to avoid build-time errors
+let openaiClient: OpenAI | null = null
+
 const getOpenAIClient = () => {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is required')
+  if (!openaiClient) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is required')
+    }
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
   }
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
+  return openaiClient
 }
 
-export const openai = process.env.NODE_ENV === 'production' || process.env.OPENAI_API_KEY 
-  ? getOpenAIClient() 
-  : null
+// Export for backward compatibility but don't initialize during import
+export const openai = null
 
 export type FuyouClassificationResult = {
   category: '103万円扶養' | '106万円社保' | '130万円社保外' | '扶養外'
@@ -29,8 +33,8 @@ export async function classifyFuyouWithAI(
   },
   isStudent: boolean
 ): Promise<FuyouClassificationResult> {
-  // Ensure OpenAI client is available
-  const client = openai || getOpenAIClient()
+  // Get OpenAI client (lazy initialization)
+  const client = getOpenAIClient()
   
   const prompt = `
 あなたは日本の税法と社会保険制度に詳しいアシスタントです。
