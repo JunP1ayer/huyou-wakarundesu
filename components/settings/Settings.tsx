@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseClient, UserProfile } from '@/lib/supabase'
+import { getAuthenticatedSupabaseClient, createSupabaseClient, UserProfile } from '@/lib/supabase'
 import { ArrowLeft, User, DollarSign, Repeat, Trash2, RefreshCw } from 'lucide-react'
 import { useToastFallback } from '@/components/notifications/Toast'
 
@@ -18,13 +18,15 @@ export default function Settings() {
 
   const fetchProfile = async () => {
     try {
-      const supabase = createSupabaseClient()
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const authClient = await getAuthenticatedSupabaseClient()
       
-      if (userError || !user) {
+      if (!authClient) {
+        showToast('ログインが必要です', 'error')
         router.push('/')
         return
       }
+      
+      const { supabase, user } = authClient
 
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -69,7 +71,13 @@ export default function Settings() {
 
     setSaving(true)
     try {
-      const supabase = createSupabaseClient()
+      const authClient = await getAuthenticatedSupabaseClient()
+      if (!authClient) {
+        showToast('ログインが必要です', 'error')
+        return
+      }
+      
+      const { supabase } = authClient
       const { error } = await supabase
         .from('user_profile')
         .update({ hourly_wage: wage, updated_at: new Date().toISOString() })
@@ -100,10 +108,13 @@ export default function Settings() {
 
     setIsDisconnecting(true)
     try {
-      const supabase = createSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      const authClient = await getAuthenticatedSupabaseClient()
+      if (!authClient) {
+        showToast('ログインが必要です', 'error')
+        return
+      }
 
+      const { supabase, user } = authClient
       const { error } = await supabase
         .from('user_moneytree_tokens')
         .delete()
@@ -307,7 +318,9 @@ export default function Settings() {
               onClick={() => {
                 if (confirm('本当にアカウントからログアウトしますか？')) {
                   const supabase = createSupabaseClient()
-                  supabase.auth.signOut()
+                  if (supabase) {
+                    supabase.auth.signOut()
+                  }
                   router.push('/')
                 }
               }}

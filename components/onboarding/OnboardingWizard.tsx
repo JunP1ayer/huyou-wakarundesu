@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseClient } from '@/lib/supabase'
+import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
 import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
 
@@ -102,12 +102,13 @@ export default function OnboardingWizard() {
   const handleOnboardingComplete = async (finalData: OnboardingData) => {
     setIsLoading(true)
     try {
-      const supabase = createSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const authClient = await getAuthenticatedSupabaseClient()
       
-      if (!user) {
+      if (!authClient) {
         throw new Error('User not authenticated')
       }
+      
+      const { supabase, user } = authClient
 
       // Calculate fuyou_line based on answers or chat result
       let fuyou_line = finalData.fuyou_limit || 1030000 // Use chat result or default

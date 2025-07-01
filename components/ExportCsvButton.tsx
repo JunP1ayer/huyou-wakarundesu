@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { saveAs } from 'file-saver'
-import { createSupabaseClient } from '@/lib/supabase'
+import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
 import { transactionsToCsv, generateCsvFilename } from '@/lib/csv'
 import { trackEvent } from '@/lib/gtag'
 import { monitorApiCall, addBreadcrumb } from '@/lib/sentry'
@@ -20,14 +20,15 @@ export default function ExportCsvButton() {
       addBreadcrumb('CSV export started', 'user_action', 'info')
       
       await monitorApiCall('csv_export', async () => {
-        const supabase = createSupabaseClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const authClient = await getAuthenticatedSupabaseClient()
         
-        if (!user) {
+        if (!authClient) {
           showToast('ログインが必要です', 'error')
           addBreadcrumb('CSV export failed: no user', 'auth', 'warning')
           return
         }
+
+        const { supabase, user } = authClient
 
         // Fetch all transactions for the user
         const { data: transactions, error } = await supabase

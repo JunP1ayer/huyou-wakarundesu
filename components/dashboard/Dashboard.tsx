@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createSupabaseClient, UserProfile, UserStats } from '@/lib/supabase'
+import { getAuthenticatedSupabaseClient, UserProfile, UserStats } from '@/lib/supabase'
 import { AlertTriangle, Settings, Banknote, Clock, Info } from 'lucide-react'
 import ExportCsvButton from '@/components/ExportCsvButton'
 import RequestPermission from '@/components/notifications/RequestPermission'
@@ -9,6 +9,7 @@ import { useThresholdNotifier } from '@/hooks/useThresholdNotifier'
 import { getThresholdStatus } from '@/utils/threshold'
 import { calculateRemaining } from '@/lib/fuyouClassifier'
 import { useToastFallback } from '@/components/notifications/Toast'
+import LoginPrompt from '@/components/auth/LoginPrompt'
 
 interface DashboardData {
   profile: UserProfile
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [authError, setAuthError] = useState(false)
   const [bankConnected, setBankConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -82,12 +84,15 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const supabase = createSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const authClient = await getAuthenticatedSupabaseClient()
       
-      if (!user) {
-        throw new Error('User not authenticated')
+      if (!authClient) {
+        setAuthError(true)
+        setLoading(false)
+        return
       }
+      
+      const { supabase, user } = authClient
 
       // Fetch user profile
       const { data: profile, error: profileError } = await supabase
@@ -158,6 +163,10 @@ export default function Dashboard() {
         </div>
       </div>
     )
+  }
+
+  if (authError) {
+    return <LoginPrompt message="ダッシュボードを利用するにはログインが必要です" />
   }
 
   if (error || !data) {

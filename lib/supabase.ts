@@ -1,20 +1,58 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Client-side Supabase client (for compatibility with existing code)
+// Singleton pattern for Supabase client to avoid multiple GoTrueClient warnings
+let supabaseInstance: SupabaseClient | null = null
+
+// Client-side Supabase client (legacy compatibility)
 export const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null
 
-// Browser client for client components
-export function createSupabaseClient() {
+// Browser client for client components with singleton pattern
+export function createSupabaseClient(): SupabaseClient | null {
+  // Return cached instance if it exists
+  if (supabaseInstance) {
+    return supabaseInstance
+  }
+
   if (!supabaseUrl || !supabaseAnonKey) {
+    // During build time or when env vars are missing, return null to prevent crash
+    if (typeof window === 'undefined') {
+      console.warn('Supabase client creation skipped during build - missing env vars')
+      return null
+    }
     throw new Error('Supabase URL and anon key are required')
   }
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  
+  // Create new instance and cache it
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return supabaseInstance
+}
+
+// Helper function for authenticated operations
+export async function getAuthenticatedSupabaseClient(): Promise<{
+  supabase: SupabaseClient
+  user: { id: string; email?: string }
+} | null> {
+  const supabase = createSupabaseClient()
+  
+  if (!supabase) {
+    console.error('Supabase client not available')
+    return null
+  }
+
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error || !user) {
+    console.error('User not authenticated:', error?.message)
+    return null
+  }
+
+  return { supabase, user }
 }
 
 // Database types
