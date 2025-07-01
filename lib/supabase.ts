@@ -1,22 +1,20 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Singleton pattern for Supabase client to avoid multiple GoTrueClient warnings
-let supabaseInstance: SupabaseClient | null = null
+// Global singleton instance to prevent multiple GoTrueClient warnings
+let globalSupabaseInstance: SupabaseClient | null = null
 
-// Client-side Supabase client (legacy compatibility)
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null
+// Legacy compatibility - DO NOT USE (causes multiple clients)
+export const supabase = null
 
-// Browser client for client components with singleton pattern
+// Browser client for client components with strict singleton pattern
 export function createSupabaseClient(): SupabaseClient | null {
-  // Return cached instance if it exists
-  if (supabaseInstance) {
-    return supabaseInstance
+  // Return cached global instance if it exists
+  if (globalSupabaseInstance) {
+    return globalSupabaseInstance
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -25,12 +23,21 @@ export function createSupabaseClient(): SupabaseClient | null {
       console.warn('Supabase client creation skipped during build - missing env vars')
       return null
     }
-    throw new Error('Supabase URL and anon key are required')
+    console.error('Supabase URL and anon key are required')
+    return null
   }
   
-  // Create new instance and cache it
-  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey)
-  return supabaseInstance
+  // Create new instance ONLY if none exists globally
+  if (typeof window !== 'undefined') {
+    // Check if instance already exists in window scope
+    const windowWithSupabase = window as typeof window & { __supabase_client?: SupabaseClient }
+    if (!windowWithSupabase.__supabase_client) {
+      windowWithSupabase.__supabase_client = createBrowserClient(supabaseUrl, supabaseAnonKey)
+    }
+    globalSupabaseInstance = windowWithSupabase.__supabase_client
+  }
+  
+  return globalSupabaseInstance
 }
 
 // Helper function for authenticated operations
@@ -41,18 +48,28 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
   const supabase = createSupabaseClient()
   
   if (!supabase) {
-    console.error('Supabase client not available')
+    console.error('Supabase client not available - check environment variables')
     return null
   }
 
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error || !user) {
-    console.error('User not authenticated:', error?.message)
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error('Auth error:', error.message)
+      return null
+    }
+    
+    if (!user) {
+      console.error('User not authenticated: Auth session missing!')
+      return null
+    }
+
+    return { supabase, user }
+  } catch (error) {
+    console.error('Authentication check failed:', error)
     return null
   }
-
-  return { supabase, user }
 }
 
 // Database types
