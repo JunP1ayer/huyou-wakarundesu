@@ -20,7 +20,9 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["node", "react", "react-dom", "next"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx", "__tests__/**/*", "e2e/**/*", "jest.setup.js", "playwright.config.ts"]

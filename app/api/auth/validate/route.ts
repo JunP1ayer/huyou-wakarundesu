@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       oauth: {
         googleProvider: {
           status: 'unknown',
-          error: null,
-          details: null
+          error: null as string | null,
+          details: null as string | null
         }
       },
       connectivity: {
