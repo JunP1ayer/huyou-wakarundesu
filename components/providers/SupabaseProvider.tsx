@@ -25,6 +25,7 @@ export default function SupabaseProvider({
   // Get environment variables with fallback for demo mode
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE
 
   // Helper function to check if a value is a valid (non-placeholder) environment variable
   const isValidEnvValue = (value: string): boolean => {
@@ -44,8 +45,11 @@ export default function SupabaseProvider({
 
   // Create Supabase client or null for demo mode
   const [supabase] = useState(() => {
-    if (!isValidEnvValue(supabaseUrl) || !isValidEnvValue(supabaseAnonKey)) {
-      console.warn('🟡 DEMO MODE: Invalid or missing Supabase credentials')
+    // Force demo mode if explicitly enabled or if credentials are invalid
+    if (demoMode === 'true' || !isValidEnvValue(supabaseUrl) || !isValidEnvValue(supabaseAnonKey)) {
+      console.warn('🟡 CLIENT DEMO MODE: Invalid or missing Supabase credentials')
+      console.warn(`📊 Demo mode reasons: DEMO_MODE=${demoMode}, URL_VALID=${isValidEnvValue(supabaseUrl)}, KEY_VALID=${isValidEnvValue(supabaseAnonKey)}`)
+      
       if (typeof window !== 'undefined') {
         window.__demo_mode = true
       }

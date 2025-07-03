@@ -4,9 +4,10 @@ import { createBrowserClient } from '@supabase/ssr'
 // Use environment variables directly to avoid build issues
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE
 
-// Check if we're in demo mode (no real Supabase connection)
-export const isDemoMode = !supabaseUrl || !supabaseAnonKey
+// Check if we're in demo mode (explicit flag or no real Supabase connection)
+export const isDemoMode = demoMode === 'true' || !supabaseUrl || !supabaseAnonKey
 
 // Browser client singleton - prevents multiple GoTrueClient instances
 export function createSupabaseClient(): SupabaseClient | null {
@@ -20,21 +21,15 @@ export function createSupabaseClient(): SupabaseClient | null {
     return window.__supabase_singleton
   }
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // In production without env vars, enable demo mode
-    if (process.env.NODE_ENV === 'production' || !supabaseUrl || !supabaseAnonKey) {
-      console.warn('🟡 DEMO MODE: Missing Supabase credentials')
-      console.warn(`📊 URL: ${supabaseUrl ? '✅ SET' : '❌ MISSING'}`)
-      console.warn(`🔑 KEY: ${supabaseAnonKey ? '✅ SET' : '❌ MISSING'}`)
-      
-      // Set demo mode flag
-      if (typeof window !== 'undefined') {
-        window.__demo_mode = true
-      }
-      return null
-    }
+  // Force demo mode if explicitly enabled or if credentials are missing
+  if (demoMode === 'true' || !supabaseUrl || !supabaseAnonKey) {
+    console.warn('🟡 SUPABASE CLIENT DEMO MODE: Missing or invalid credentials')
+    console.warn(`📊 Demo mode reasons: DEMO_MODE=${demoMode}, URL=${supabaseUrl ? '✅' : '❌'}, KEY=${supabaseAnonKey ? '✅' : '❌'}`)
     
-    console.error('Supabase URL and anon key are required')
+    // Set demo mode flag
+    if (typeof window !== 'undefined') {
+      window.__demo_mode = true
+    }
     return null
   }
   
@@ -63,8 +58,8 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
   supabase: SupabaseClient
   user: { id: string; email?: string }
 } | null> {
-  // Check for demo mode
-  if (typeof window !== 'undefined' && window.__demo_mode) {
+  // Check for demo mode - prioritize explicit flag
+  if (demoMode === 'true' || (typeof window !== 'undefined' && window.__demo_mode)) {
     // Return a mock authenticated user for demo mode with mock database operations
     const mockSupabase = {
       from: () => ({

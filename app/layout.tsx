@@ -53,8 +53,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Fetch initial session on server for SSR
-  const initialSession = await getServerSession()
+  // Fetch initial session on server for SSR with error handling
+  let initialSession = null
+  try {
+    initialSession = await getServerSession()
+  } catch (error) {
+    console.error('🔴 SSR Session fetch failed, using null:', error)
+    // Fall back to null - client will handle demo mode
+  }
   
   return (
     <html lang="ja">

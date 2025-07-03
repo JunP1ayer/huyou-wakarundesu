@@ -22,10 +22,13 @@ const isValidEnvValue = (value: string | undefined): boolean => {
 export async function getServerSession(): Promise<Session | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE
   
-  // Return demo session if environment variables are missing or invalid (demo mode)
-  if (!isValidEnvValue(url) || !isValidEnvValue(key)) {
+  // Force demo mode if explicitly enabled or if credentials are invalid
+  if (demoMode === 'true' || !isValidEnvValue(url) || !isValidEnvValue(key)) {
     console.warn('🟡 SSR Demo Mode: Returning mock session for preview')
+    console.warn(`📊 Demo mode reasons: DEMO_MODE=${demoMode}, URL_VALID=${isValidEnvValue(url)}, KEY_VALID=${isValidEnvValue(key)}`)
+    
     return {
       access_token: 'demo-ssr-token',
       refresh_token: 'demo-ssr-refresh',
