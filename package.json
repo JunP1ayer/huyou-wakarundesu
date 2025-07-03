@@ -36,6 +36,8 @@
   "devDependencies": {
     "@babel/core": "^7.28.0",
     "@eslint/eslintrc": "^3",
+    "@opentelemetry/core": "^2.0.1",
+    "@opentelemetry/sdk-trace-base": "^2.0.1",
     "@playwright/test": "^1.40.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.4.2",
@@ -53,6 +55,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "msw": "^2.0.0",
     "tailwindcss": "^4",
+    "tslib": "^2.8.1",
     "typescript": "^5",
     "zod": "^3.22.4"
   },

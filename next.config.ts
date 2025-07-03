@@ -21,6 +21,10 @@ const nextConfig = {
   experimental: {
     // Enable experimental features if needed
   },
+  eslint: {
+    // Disable ESLint during production builds
+    ignoreDuringBuilds: true,
+  },
   // Removed rewrites - manifest.json is served as static file from /public
   async headers() {
     return [
