@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // OAuth設定検証API
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const cookieStore = await cookies()
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         })
 
         // 基本的な接続テスト
-        const { data, error } = await supabase.auth.getSession()
+        const { error } = await supabase.auth.getSession()
         validation.connectivity.supabaseConnection = !error
         
         if (error) {

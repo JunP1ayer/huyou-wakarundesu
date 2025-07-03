@@ -38,7 +38,7 @@ export default function LoginPage() {
       // Clear the error from URL
       router.replace('/login', undefined)
     }
-  }, [])
+  }, [router])
 
   // Already logged in? Redirect to dashboard
   useEffect(() => {

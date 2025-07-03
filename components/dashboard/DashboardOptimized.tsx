@@ -2,15 +2,14 @@
 
 import { useState, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import { AlertTriangle, Settings, Banknote, Clock, Info, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Settings, Clock, Info, TrendingUp } from 'lucide-react'
 import ExportCsvButton from '@/components/ExportCsvButton'
 import RequestPermission from '@/components/notifications/RequestPermission'
 import { useThresholdNotifier } from '@/hooks/useThresholdNotifier'
 import { calculateRemaining } from '@/lib/fuyouClassifier'
-import { useToastFallback } from '@/components/notifications/Toast'
 import LoginPrompt from '@/components/auth/LoginPrompt'
 import { useDashboardData } from '@/hooks/useDashboardData'
-import DashboardSkeleton, { ChartSkeleton, BankConnectionSkeleton } from './DashboardSkeleton'
+import DashboardSkeleton, { ChartSkeleton } from './DashboardSkeleton'
 
 // 🚀 Dynamic Imports でコードスプリッティング
 const DashboardChart = dynamic(
@@ -40,15 +39,11 @@ const DashboardChart = dynamic(
  * - Memoizationでリレンダリング最適化
  */
 export default function DashboardOptimized() {
-  const [showSettings, setShowSettings] = useState(false)
-  const [showWelcomeToast, setShowWelcomeToast] = useState(false)
-  const { showToast, ToastContainer } = useToastFallback()
+  const [, setShowSettings] = useState(false)
 
   // 🚀 最適化されたデータ取得（バッチAPI使用）
   const {
     data,
-    bankConnected,
-    bankInfo,
     loading,
     error,
     authError,
@@ -237,8 +232,6 @@ export default function DashboardOptimized() {
         </Suspense>
       )} */}
 
-      {/* Toast Container */}
-      <ToastContainer />
 
       {/* パフォーマンス情報（開発環境） */}
       {process.env.NODE_ENV === 'development' && performance && (

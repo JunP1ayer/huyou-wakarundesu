@@ -15,7 +15,6 @@ function AuthCallbackContent() {
   const [message, setMessage] = useState('認証処理を開始しています...')
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout
 
     const handleAuthCallback = async () => {
       if (!supabase) {
@@ -100,7 +99,7 @@ function AuthCallbackContent() {
     }
 
     // タイムアウト設定（30秒）
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (authState === 'processing') {
         setAuthState('timeout')
         setMessage('認証処理がタイムアウトしました。再度お試しください。')

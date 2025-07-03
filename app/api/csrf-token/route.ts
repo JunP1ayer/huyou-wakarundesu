@@ -9,7 +9,7 @@ import { createCSRFTokenResponse, getCSRFConfig } from '@/lib/csrf'
 /**
  * CSRFトークン取得 - GET /api/csrf-token
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 新しいCSRFトークンを生成してレスポンス
     const response = createCSRFTokenResponse()

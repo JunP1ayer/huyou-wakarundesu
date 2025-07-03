@@ -267,7 +267,7 @@ export const validate = {
         )
         return { success: false, errors }
       }
-    } catch (error) {
+    } catch {
       return { 
         success: false, 
         errors: ['リクエストボディの解析に失敗しました'] 

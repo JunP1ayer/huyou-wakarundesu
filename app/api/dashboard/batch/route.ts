@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
  * ダッシュボード向けAPIバッチエンドポイント
  * 複数のAPI呼び出しを並列実行して、ロード時間を短縮
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   const startTime = Date.now()
   
   try {
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
             response.errors = response.errors || {}
             response.errors.stats_insert = insertError.message
           }
-        } catch (insertException) {
+        } catch {
           response.stats = defaultStats
           response.errors = response.errors || {}
           response.errors.stats_insert = 'Failed to create default stats'

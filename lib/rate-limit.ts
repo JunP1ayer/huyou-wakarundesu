@@ -285,7 +285,7 @@ if (typeof process !== 'undefined' && process.on && typeof process.on === 'funct
     process.on('exit', () => {
       globalRateLimiter.destroy()
     })
-  } catch (error) {
+  } catch {
     // Edge runtime環境では無視
     console.warn('Process event listener not available in Edge runtime')
   }
