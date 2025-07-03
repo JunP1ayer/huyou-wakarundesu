@@ -36,17 +36,11 @@ export async function POST(request: NextRequest) {
       
       // Mock classification result based on input
       const mockResult: FuyouClassificationResult = {
-        category: isStudent ? '扶養内（学生）' : '扶養内（103万円）',
+        category: isStudent ? '130万円社保外' : '103万円扶養',
         limitIncome: isStudent ? 1300000 : 1030000,
-        explanation: isStudent 
+        reason: isStudent 
           ? 'デモモード: 学生の場合、年収130万円以内であれば扶養控除の対象となります。'
-          : 'デモモード: 一般的には年収103万円以内であれば所得税の扶養控除対象となります。',
-        confidence: 0.95,
-        factors: [
-          '学生状況を考慮',
-          '保険情報を確認',
-          '労働時間を評価'
-        ]
+          : 'デモモード: 一般的には年収103万円以内であれば所得税の扶養控除対象となります。'
       }
 
       // Track demo mode usage
