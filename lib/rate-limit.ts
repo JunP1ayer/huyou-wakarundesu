@@ -247,8 +247,8 @@ export function getRateLimitStats(): {
   const entries = Array.from((globalRateLimiter as any).store.entries())
   
   // 上位制限対象を取得
-  const topLimited = entries
-    .map(([key, entry]: [string, RateLimitEntry]) => ({
+  const topLimited = (entries as Array<[string, RateLimitEntry]>)
+    .map(([key, entry]) => ({
       ip: key,
       hits: entry.totalHits
     }))
