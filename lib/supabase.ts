@@ -65,9 +65,29 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
 } | null> {
   // Check for demo mode
   if (typeof window !== 'undefined' && window.__demo_mode) {
-    // Return a mock authenticated user for demo mode
+    // Return a mock authenticated user for demo mode with mock database operations
+    const mockSupabase = {
+      from: () => ({
+        upsert: () => Promise.resolve({ data: null, error: null }),
+        insert: () => Promise.resolve({ data: null, error: null }),
+        update: () => Promise.resolve({ data: null, error: null }),
+        select: () => Promise.resolve({ data: [], error: null }),
+        delete: () => Promise.resolve({ data: null, error: null }),
+      }),
+      auth: {
+        getUser: () => Promise.resolve({ 
+          data: { user: { id: 'demo-user-001', email: 'demo@example.com' } }, 
+          error: null 
+        }),
+        getSession: () => Promise.resolve({ 
+          data: { session: { user: { id: 'demo-user-001', email: 'demo@example.com' } } }, 
+          error: null 
+        }),
+      }
+    } as unknown as SupabaseClient
+
     return {
-      supabase: {} as SupabaseClient, // Mock client
+      supabase: mockSupabase,
       user: {
         id: 'demo-user-001',
         email: 'demo@example.com'

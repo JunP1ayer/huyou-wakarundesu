@@ -90,27 +90,39 @@ export default function LoginPage() {
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
+            access_type: 'offline',      // 長期アクセストークン取得
+            prompt: 'consent',           // 権限再確認
+            include_granted_scopes: 'true', // 段階的権限付与
+          },
+          scopes: 'openid email profile', // 必要最小限のスコープ
+          flowType: 'pkce',              // セキュリティ強化（PKCE）
         }
       })
 
       if (error) {
-        console.error('Google login error:', error)
+        console.error('🔴 Google OAuth Error:', error)
+        
+        // 詳細なエラーハンドリング
         if (error.message.includes('provider is not enabled')) {
-          setMessage('Google認証が設定されていません。管理者にお問い合わせください。')
+          setMessage('🔧 Google認証が設定されていません。OAUTH_ULTRA_SETUP.mdの手順に従って設定を完了してください。')
         } else if (error.message.includes('redirect_uri_mismatch')) {
-          setMessage('リダイレクトURIの設定に問題があります。管理者にお問い合わせください。')
+          setMessage('🔧 リダイレクトURIの設定に問題があります。Google Cloud Consoleの設定を確認してください。')
+        } else if (error.message.includes('unauthorized_client')) {
+          setMessage('🔧 クライアントIDまたはシークレットが正しくありません。Supabase設定を確認してください。')
+        } else if (error.message.includes('access_denied')) {
+          setMessage('❌ Googleアクセスが拒否されました。再度お試しください。')
         } else {
-          setMessage(`Google ログインエラー: ${error.message}`)
+          setMessage(`❌ Google ログインエラー: ${error.message}`)
         }
         setIsLoading(false)
+      } else {
+        // 成功時のログ
+        console.log('✅ Google OAuth initiated successfully')
+        // リダイレクト中なのでloadingはfalseにしない
       }
-      // 成功時はリダイレクトされるのでloadingはfalseにしない
     } catch (error) {
-      console.error('Google login error:', error)
-      setMessage('Google ログインに失敗しました。再試行してください。')
+      console.error('🔴 Google login exception:', error)
+      setMessage('❌ Google ログインで予期しないエラーが発生しました。ページをリロードして再試行してください。')
       setIsLoading(false)
     }
   }

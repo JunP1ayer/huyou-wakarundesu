@@ -23,10 +23,24 @@ export async function getServerSession(): Promise<Session | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
-  // Return null if environment variables are missing or invalid (demo mode)
+  // Return demo session if environment variables are missing or invalid (demo mode)
   if (!isValidEnvValue(url) || !isValidEnvValue(key)) {
-    console.warn('🟡 SSR Demo Mode: Invalid or missing Supabase credentials')
-    return null
+    console.warn('🟡 SSR Demo Mode: Returning mock session for preview')
+    return {
+      access_token: 'demo-ssr-token',
+      refresh_token: 'demo-ssr-refresh',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: {
+        id: 'demo-user-001',
+        email: 'demo@example.com',
+        aud: 'authenticated',
+        role: 'authenticated',
+        app_metadata: {},
+        user_metadata: {},
+        created_at: new Date().toISOString(),
+      } as any,
+    } as Session
   }
   
   try {
