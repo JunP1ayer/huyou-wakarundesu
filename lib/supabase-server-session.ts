@@ -32,7 +32,7 @@ export async function getServerSession(): Promise<Session | null> {
   try {
     const cookieStore = await cookies()
     
-    const supabase = createServerClient(url, key, {
+    const supabase = createServerClient(url!, key!, {
       cookies: {
         getAll() {
           return cookieStore.getAll()
