@@ -159,11 +159,18 @@ function logRequest(request: NextRequest, rateLimitResult?: any, blocked?: boole
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // 静的ファイルはスキップ
+  // 静的ファイルとPWAアセットはスキップ
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/static/') ||
-    pathname.includes('.') // ファイル拡張子がある場合
+    pathname.startsWith('/icons/') ||
+    pathname === '/manifest.json' ||
+    pathname === '/favicon.ico' ||
+    pathname === '/sw.js' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname.startsWith('/workbox-') ||
+    pathname.includes('.') // ファイル拡張子がある場合（.js, .css, .pngなど）
   ) {
     return NextResponse.next()
   }

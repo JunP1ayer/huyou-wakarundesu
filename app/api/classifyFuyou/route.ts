@@ -30,6 +30,41 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Check for demo mode
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !process.env.OPENAI_API_KEY) {
+      console.log('🟡 ClassifyFuyou API - Demo mode: Returning mock classification result')
+      
+      // Mock classification result based on input
+      const mockResult: FuyouClassificationResult = {
+        category: isStudent ? '扶養内（学生）' : '扶養内（103万円）',
+        limitIncome: isStudent ? 1300000 : 1030000,
+        explanation: isStudent 
+          ? 'デモモード: 学生の場合、年収130万円以内であれば扶養控除の対象となります。'
+          : 'デモモード: 一般的には年収103万円以内であれば所得税の扶養控除対象となります。',
+        confidence: 0.95,
+        factors: [
+          '学生状況を考慮',
+          '保険情報を確認',
+          '労働時間を評価'
+        ]
+      }
+
+      // Track demo mode usage
+      trackEvent.openaiClassifySuccess(mockResult.category, mockResult.limitIncome)
+
+      Sentry.addBreadcrumb({
+        message: 'Mock classification completed (demo mode)',
+        level: 'info',
+        data: {
+          category: mockResult.category,
+          limitIncome: mockResult.limitIncome,
+          demo_mode: true
+        }
+      })
+
+      return NextResponse.json(mockResult)
+    }
+
     // Dynamically import OpenAI function to avoid build-time initialization
     const { classifyFuyouWithAI } = await import('@/lib/openaiClient')
     
