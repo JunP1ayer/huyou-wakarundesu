@@ -40,7 +40,7 @@ export default function Dashboard() {
 
   const handleBankConnect = async () => {
     // Check if in demo mode
-    if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+    if (typeof window !== 'undefined' && window.__demo_mode) {
       showToast('デモモードでは銀行連携は利用できません', 'warning')
       return
     }
@@ -67,7 +67,7 @@ export default function Dashboard() {
 
   const handleSyncTransactions = async () => {
     // Check if in demo mode
-    if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+    if (typeof window !== 'undefined' && window.__demo_mode) {
       showToast('デモモードでは同期機能は利用できません', 'warning')
       return
     }
@@ -98,7 +98,7 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       // Check if we're in demo mode
-      if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+      if (typeof window !== 'undefined' && window.__demo_mode) {
         // Use demo data
         const profile = demoStorage.getProfile()
         const stats = demoStorage.getStats()

@@ -23,7 +23,7 @@ export function debugAuth() {
   
   // 2. Demo Mode Check
   const isDemoMode = !hasSupabaseUrl || !hasSupabaseKey
-  const windowDemoMode = typeof window !== 'undefined' && (window as any).__demo_mode
+  const windowDemoMode = typeof window !== 'undefined' && window.__demo_mode
   
   console.log('\n🎭 DEMO MODE:')
   console.log(`   Environment Demo Mode: ${isDemoMode ? '✅ ACTIVE' : '❌ INACTIVE'}`)
@@ -31,9 +31,10 @@ export function debugAuth() {
   
   // 3. Cookie Check
   console.log('\n🍪 COOKIES:')
+  let supabaseCookies: string[] = []
   if (typeof document !== 'undefined') {
     const allCookies = document.cookie.split('; ')
-    const supabaseCookies = allCookies.filter(c => c.startsWith('sb-'))
+    supabaseCookies = allCookies.filter(c => c.startsWith('sb-'))
     
     console.log(`   Total Cookies: ${allCookies.length}`)
     console.log(`   Supabase Cookies: ${supabaseCookies.length}`)
@@ -123,5 +124,5 @@ export function debugAuth() {
 
 // Make it available globally in browser
 if (typeof window !== 'undefined') {
-  (window as any).debugAuth = debugAuth
+  window.debugAuth = debugAuth
 }

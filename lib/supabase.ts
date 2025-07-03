@@ -16,9 +16,8 @@ export function createSupabaseClient(): SupabaseClient | null {
   }
 
   // Check for existing singleton instance
-  const windowWithSupabase = window as typeof window & { __supabase_singleton?: SupabaseClient }
-  if (windowWithSupabase.__supabase_singleton) {
-    return windowWithSupabase.__supabase_singleton
+  if (window.__supabase_singleton) {
+    return window.__supabase_singleton
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -30,7 +29,7 @@ export function createSupabaseClient(): SupabaseClient | null {
       
       // Set demo mode flag
       if (typeof window !== 'undefined') {
-        (window as typeof window & { __demo_mode?: boolean }).__demo_mode = true
+        window.__demo_mode = true
       }
       return null
     }
@@ -44,16 +43,18 @@ export function createSupabaseClient(): SupabaseClient | null {
     // @supabase/ssr uses these specific options
     cookieOptions: {
       name: supabaseUrl ? `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token` : 'sb-auth-token',
-      lifetime: 60 * 60 * 24 * 7, // 7 days (SSR uses 'lifetime' not 'maxAge')
       domain: undefined, // Use current domain
       path: '/',
       sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false, // Must be false for browser client
     },
     isSingleton: true,
   })
   
   // Store singleton instance
-  windowWithSupabase.__supabase_singleton = client
+  window.__supabase_singleton = client
   return client
 }
 
@@ -63,7 +64,7 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
   user: { id: string; email?: string }
 } | null> {
   // Check for demo mode
-  if (typeof window !== 'undefined' && (window as typeof window & { __demo_mode?: boolean }).__demo_mode) {
+  if (typeof window !== 'undefined' && window.__demo_mode) {
     // Return a mock authenticated user for demo mode
     return {
       supabase: {} as SupabaseClient, // Mock client
