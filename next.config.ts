@@ -22,7 +22,7 @@ const nextConfig = {
     // Enable experimental features if needed
   },
   eslint: {
-    // Disable ESLint during production builds
+    // Disable ESLint during builds to avoid any type errors
     ignoreDuringBuilds: true,
   },
   // Removed rewrites - manifest.json is served as static file from /public
