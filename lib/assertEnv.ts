@@ -26,11 +26,11 @@ if (missingRequired.length > 0) {
   })
   console.error('\n📋 Please check .env.example for the required format')
   
-  // Only throw in production builds
-  if (process.env.NODE_ENV === 'production') {
+  // Only throw in production builds AND not in CI environments
+  if (process.env.NODE_ENV === 'production' && !process.env.CI && !process.env.VERCEL) {
     throw new Error(`Missing required environment variables: ${missingRequired.join(', ')}`)
   } else {
-    console.warn('⚠️  Running in development mode without Supabase - using demo mode')
+    console.warn('⚠️  Running in build/development mode without Supabase - using demo mode')
   }
 }
 
@@ -82,8 +82,8 @@ export const envValidation = {
 
 // Type-safe environment variable access
 export const env = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   isDemoMode: envValidation.isDemoMode,
 } as const

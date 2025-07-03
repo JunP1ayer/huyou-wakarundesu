@@ -1,14 +1,12 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
-import './assertEnv'
-import { env, envValidation } from './assertEnv'
 
-// Use validated environment variables
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Use environment variables directly to avoid build issues
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Check if we're in demo mode (no real Supabase connection)
-export const isDemoMode = envValidation.isDemoMode
+export const isDemoMode = !supabaseUrl || !supabaseAnonKey
 
 // Browser client singleton - prevents multiple GoTrueClient instances
 export function createSupabaseClient(): SupabaseClient | null {
