@@ -279,9 +279,14 @@ export function clearAllRateLimits(): void {
   }
 }
 
-// プロセス終了時のクリーンアップ
-if (typeof process !== 'undefined') {
-  process.on('exit', () => {
-    globalRateLimiter.destroy()
-  })
+// プロセス終了時のクリーンアップ（Node.js環境のみ）
+if (typeof process !== 'undefined' && process.on && typeof process.on === 'function') {
+  try {
+    process.on('exit', () => {
+      globalRateLimiter.destroy()
+    })
+  } catch (error) {
+    // Edge runtime環境では無視
+    console.warn('Process event listener not available in Edge runtime')
+  }
 }

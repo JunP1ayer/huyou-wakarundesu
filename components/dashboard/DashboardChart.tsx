@@ -36,11 +36,10 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
   }
 
   const getStatusColor = () => {
-    switch (thresholdStatus.status) {
-      case 'safe': return 'text-green-700 bg-green-50 border-green-200'
-      case 'warning': return 'text-yellow-700 bg-yellow-50 border-yellow-200'
-      case 'danger': return 'text-red-700 bg-red-50 border-red-200'
-      case 'exceeded': return 'text-red-900 bg-red-100 border-red-300'
+    switch (thresholdStatus.severity) {
+      case 'low': return 'text-green-700 bg-green-50 border-green-200'
+      case 'medium': return 'text-yellow-700 bg-yellow-50 border-yellow-200'
+      case 'high': return 'text-red-700 bg-red-50 border-red-200'
       default: return 'text-gray-700 bg-gray-50 border-gray-200'
     }
   }
@@ -51,7 +50,11 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
       <div className={`p-4 rounded-lg border ${getStatusColor()}`}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold">扶養範囲ステータス</h3>
-          <span className="text-sm font-medium">{thresholdStatus.label}</span>
+          <span className="text-sm font-medium">
+            {thresholdStatus.severity === 'low' && '安全'}
+            {thresholdStatus.severity === 'medium' && '注意'}
+            {thresholdStatus.severity === 'high' && '危険'}
+          </span>
         </div>
         <p className="text-sm">{thresholdStatus.message}</p>
       </div>
@@ -88,16 +91,15 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
         </div>
         
         <div className="bg-gray-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600">取引件数</p>
+          <p className="text-sm text-gray-600">残り可能時間</p>
           <p className="text-xl font-bold text-gray-900">
-            {stats.transaction_count}件
+            {stats.remaining_hours}時間
           </p>
         </div>
       </div>
 
       {/* 詳細情報 */}
       <div className="text-xs text-gray-500 space-y-1">
-        <p>最終計算: {new Date(stats.last_calculated).toLocaleString('ja-JP')}</p>
         <p>データ更新: {new Date(stats.updated_at).toLocaleString('ja-JP')}</p>
       </div>
     </div>
