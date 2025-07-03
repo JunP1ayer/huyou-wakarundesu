@@ -21,16 +21,7 @@ const nextConfig = {
   experimental: {
     // Enable experimental features if needed
   },
-  async rewrites() {
-    return {
-      fallback: [
-        {
-          source: '/manifest.json',
-          destination: '/api/manifest',
-        },
-      ],
-    }
-  },
+  // Removed rewrites - manifest.json is served as static file from /public
   async headers() {
     return [
       {

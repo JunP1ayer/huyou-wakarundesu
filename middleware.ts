@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
   // List of paths that should bypass all authentication and checks
@@ -20,45 +21,104 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next/image/')
   
   if (isPublicPath) {
-    // For manifest.json specifically, ensure proper headers
-    if (pathname === '/manifest.json') {
-      const response = NextResponse.next()
-      response.headers.set('Content-Type', 'application/manifest+json')
-      response.headers.set('Cache-Control', 'public, max-age=3600')
-      response.headers.set('Access-Control-Allow-Origin', '*')
-      return response
-    }
-    
-    // Allow other public paths to proceed normally
-    return NextResponse.next()
-  }
-  
-  // For API routes that might fail due to missing env vars, add warning headers
-  if (pathname.startsWith('/api/')) {
+    // For static assets, allow them through without auth
     const response = NextResponse.next()
     
-    // Add a warning header if environment is not properly configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      response.headers.set('X-Config-Warning', 'Missing-Environment-Variables')
+    // Set proper headers for manifest.json
+    if (pathname === '/manifest.json') {
+      response.headers.set('Content-Type', 'application/manifest+json')
+      response.headers.set('Cache-Control', 'public, max-age=3600')
     }
     
     return response
   }
   
-  // For all other routes, proceed normally
-  return NextResponse.next()
+  // Create a Supabase client configured for middleware
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  // If Supabase is not configured, allow requests through (demo mode)
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const response = NextResponse.next()
+    response.headers.set('X-Demo-Mode', 'true')
+    return response
+  }
+  
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+  
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, {
+            ...options,
+            // Ensure cookies work in production
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+          })
+        )
+      },
+    },
+  })
+  
+  // Refresh session if it exists (this will extend the session)
+  const { data: { session }, error } = await supabase.auth.getSession()
+  
+  // For auth callback routes, allow through
+  if (pathname.startsWith('/api/auth/')) {
+    return response
+  }
+  
+  // Public routes that don't require authentication
+  const publicRoutes = ['/', '/login', '/signup', '/api/health', '/api/manifest']
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))
+  
+  if (isPublicRoute) {
+    return response
+  }
+  
+  // Protected routes require authentication
+  if (!session && !isPublicRoute) {
+    // Allow API routes to return 401
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Authentication required' }),
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+    
+    // Redirect to home for other routes
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/'
+    redirectUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
+  
+  return response
 }
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * But DO include manifest.json and other root-level files
      */
-    '/((?!_next/static|_next/image).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }

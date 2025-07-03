@@ -25,10 +25,17 @@ export async function createSupabaseServerClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, {
+                ...options,
+                // Ensure cookies work across environments
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production',
+                httpOnly: true,
+                path: '/',
+              })
             )
           } catch {
-            // Server component - ignore
+            // Server component - ignore cookie setting errors
           }
         },
       },

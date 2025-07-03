@@ -1,4 +1,4 @@
-# 扶養わかるんです (Huyou Wakarundesu) - MVP v1.2
+# 扶養わかるんです (Fuyou Wakarundesu) - MVP v1.2
 
 A mobile-first web application that helps Japanese users understand their dependent (扶養) income limits and track how much more they can earn without losing dependent status.
 

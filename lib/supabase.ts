@@ -1,43 +1,33 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
+import './assertEnv'
+import { env, envValidation } from './assertEnv'
 
-// Development fallback values - DO NOT USE IN PRODUCTION
-const DEVELOPMENT_SUPABASE_URL = 'https://xyzcompany.supabase.co'
-const DEVELOPMENT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5emNvbXBhbnkiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYyNTY3MjQwMCwiZXhwIjoxOTQxMjQ4NDAwfQ.AQcFUykdFmIDXGuQNL1cGayHoYqBsyFQSy2vSaGWiSU'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (process.env.NODE_ENV === 'development' ? DEVELOPMENT_SUPABASE_URL : '')
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || (process.env.NODE_ENV === 'development' ? DEVELOPMENT_ANON_KEY : '')
+// Use validated environment variables
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 // Check if we're in demo mode (no real Supabase connection)
-export const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NODE_ENV === 'production'
+export const isDemoMode = envValidation.isDemoMode
 
-// Global singleton instance to prevent multiple GoTrueClient warnings
-let globalSupabaseInstance: SupabaseClient | null = null
-
-// Legacy compatibility - DO NOT USE (causes multiple clients)
-export const supabase = null
-
-// Browser client for client components with strict singleton pattern
+// Browser client singleton - prevents multiple GoTrueClient instances
 export function createSupabaseClient(): SupabaseClient | null {
-  // Return cached global instance if it exists
-  if (globalSupabaseInstance) {
-    return globalSupabaseInstance
+  // Server-side rendering check
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  // Check for existing singleton instance
+  const windowWithSupabase = window as typeof window & { __supabase_singleton?: SupabaseClient }
+  if (windowWithSupabase.__supabase_singleton) {
+    return windowWithSupabase.__supabase_singleton
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // During build time or when env vars are missing
-    if (typeof window === 'undefined') {
-      console.warn('Supabase client creation skipped during build - missing env vars')
-      return null
-    }
-    
-    // In production without env vars, return a mock client for demo mode
+    // In production without env vars, enable demo mode
     if (process.env.NODE_ENV === 'production') {
-      console.warn('Running in DEMO MODE - No Supabase credentials provided')
-      // Return null but set demo mode flag
-      if (typeof window !== 'undefined') {
-        (window as typeof window & { __demo_mode?: boolean }).__demo_mode = true
-      }
+      console.warn('Running in DEMO MODE - No Supabase credentials provided');
+      (window as typeof window & { __demo_mode?: boolean }).__demo_mode = true
       return null
     }
     
@@ -45,17 +35,15 @@ export function createSupabaseClient(): SupabaseClient | null {
     return null
   }
   
-  // Create new instance ONLY if none exists globally
-  if (typeof window !== 'undefined') {
-    // Check if instance already exists in window scope
-    const windowWithSupabase = window as typeof window & { __supabase_client?: SupabaseClient }
-    if (!windowWithSupabase.__supabase_client) {
-      windowWithSupabase.__supabase_client = createBrowserClient(supabaseUrl, supabaseAnonKey)
-    }
-    globalSupabaseInstance = windowWithSupabase.__supabase_client
-  }
+  // Create singleton instance using @supabase/ssr
+  const client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    // Use default cookie handling from @supabase/ssr
+    isSingleton: true
+  })
   
-  return globalSupabaseInstance
+  // Store singleton instance
+  windowWithSupabase.__supabase_singleton = client
+  return client
 }
 
 // Helper function for authenticated operations
