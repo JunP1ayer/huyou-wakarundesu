@@ -13,6 +13,33 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
+  // Check for error parameters from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const error = urlParams.get('error')
+    
+    if (error) {
+      switch (error) {
+        case 'auth_failed':
+          setMessage('認証に失敗しました。再度お試しください。')
+          break
+        case 'no_session':
+          setMessage('セッションが作成されませんでした。再度ログインしてください。')
+          break
+        case 'callback_failed':
+          setMessage('認証処理でエラーが発生しました。')
+          break
+        case 'no_supabase':
+          setMessage('認証システムが利用できません。')
+          break
+        default:
+          setMessage('エラーが発生しました。')
+      }
+      // Clear the error from URL
+      router.replace('/login', undefined)
+    }
+  }, [])
+
   // Already logged in? Redirect to dashboard
   useEffect(() => {
     if (!loading && session) {
@@ -49,25 +76,41 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    if (!supabase) return
+    if (!supabase) {
+      setMessage('デモモードです。認証が設定されていません。')
+      return
+    }
 
     setIsLoading(true)
+    setMessage('')
+    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       })
 
       if (error) {
         console.error('Google login error:', error)
-        setMessage(`Google ログインエラー: ${error.message}`)
+        if (error.message.includes('provider is not enabled')) {
+          setMessage('Google認証が設定されていません。管理者にお問い合わせください。')
+        } else if (error.message.includes('redirect_uri_mismatch')) {
+          setMessage('リダイレクトURIの設定に問題があります。管理者にお問い合わせください。')
+        } else {
+          setMessage(`Google ログインエラー: ${error.message}`)
+        }
         setIsLoading(false)
       }
+      // 成功時はリダイレクトされるのでloadingはfalseにしない
     } catch (error) {
       console.error('Google login error:', error)
-      setMessage('Google ログインに失敗しました。')
+      setMessage('Google ログインに失敗しました。再試行してください。')
       setIsLoading(false)
     }
   }
