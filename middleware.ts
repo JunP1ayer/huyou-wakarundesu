@@ -30,6 +30,10 @@ export async function middleware(request: NextRequest) {
       response.headers.set('Cache-Control', 'public, max-age=3600')
     }
     
+    // Debug headers to identify middleware behavior
+    response.headers.set('X-Middleware-Public-Path', 'true')
+    response.headers.set('X-Middleware-Path', pathname)
+    
     return response
   }
   
@@ -41,6 +45,9 @@ export async function middleware(request: NextRequest) {
   if (!supabaseUrl || !supabaseAnonKey) {
     const response = NextResponse.next()
     response.headers.set('X-Demo-Mode', 'true')
+    response.headers.set('X-Supabase-URL-Set', supabaseUrl ? 'true' : 'false')
+    response.headers.set('X-Supabase-Key-Set', supabaseAnonKey ? 'true' : 'false')
+    response.headers.set('X-Middleware-Path', pathname)
     return response
   }
   

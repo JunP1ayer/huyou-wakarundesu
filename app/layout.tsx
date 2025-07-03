@@ -6,6 +6,7 @@ import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import DemoModeBanner from '@/components/DemoModeBanner';
 import "./globals.css";
+import '@/lib/debugAuth';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

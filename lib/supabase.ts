@@ -23,9 +23,15 @@ export function createSupabaseClient(): SupabaseClient | null {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     // In production without env vars, enable demo mode
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('Running in DEMO MODE - No Supabase credentials provided');
-      (window as typeof window & { __demo_mode?: boolean }).__demo_mode = true
+    if (process.env.NODE_ENV === 'production' || !supabaseUrl || !supabaseAnonKey) {
+      console.warn('🟡 DEMO MODE: Missing Supabase credentials')
+      console.warn(`📊 URL: ${supabaseUrl ? '✅ SET' : '❌ MISSING'}`)
+      console.warn(`🔑 KEY: ${supabaseAnonKey ? '✅ SET' : '❌ MISSING'}`)
+      
+      // Set demo mode flag
+      if (typeof window !== 'undefined') {
+        (window as typeof window & { __demo_mode?: boolean }).__demo_mode = true
+      }
       return null
     }
     
@@ -64,7 +70,10 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
   const supabase = createSupabaseClient()
   
   if (!supabase) {
-    console.error('Supabase client not available - check environment variables')
+    console.error('🔴 Supabase client not available')
+    console.error('📋 Check environment variables in Vercel Dashboard:')
+    console.error('   - NEXT_PUBLIC_SUPABASE_URL')
+    console.error('   - NEXT_PUBLIC_SUPABASE_ANON_KEY')
     return null
   }
 
