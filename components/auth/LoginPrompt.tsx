@@ -1,6 +1,8 @@
 'use client'
 
 import { LogIn, User } from 'lucide-react'
+import { useSupabase } from '@/components/providers/SupabaseProvider'
+import { useState } from 'react'
 
 interface LoginPromptProps {
   message?: string
@@ -11,15 +13,42 @@ export default function LoginPrompt({
   message = 'この機能を利用するにはログインが必要です',
   onLogin 
 }: LoginPromptProps) {
+  const { supabase } = useSupabase()
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleGoogleLogin = async () => {
-    try {
-      // Google OAuth のリダイレクト処理をここに実装
-      // 現在はSupabase OAuth 設定待ち
+    if (!supabase) {
+      // Demo mode - just call onLogin
       if (onLogin) {
         onLogin()
       }
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      })
+
+      if (error) {
+        console.error('Google login error:', error)
+        // Fallback to login page
+        if (onLogin) {
+          onLogin()
+        }
+      }
     } catch (error) {
       console.error('Login error:', error)
+      // Fallback to login page
+      if (onLogin) {
+        onLogin()
+      }
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -39,10 +68,11 @@ export default function LoginPrompt({
         <div className="mt-8 space-y-4">
           <button
             onClick={handleGoogleLogin}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+            disabled={isLoading}
+            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <LogIn className="w-5 h-5 mr-2" />
-            Googleでログイン
+            {isLoading ? 'ログイン中...' : 'ログインページへ'}
           </button>
           
           <div className="text-center">

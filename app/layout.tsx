@@ -6,6 +6,7 @@ import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import DemoModeBanner from '@/components/DemoModeBanner';
 import SupabaseProvider from '@/components/providers/SupabaseProvider';
+import Header from '@/components/navigation/Header';
 import { getServerSession } from '@/lib/supabase-server-session';
 import "./globals.css";
 import '@/lib/debugAuth';
@@ -68,7 +69,10 @@ export default async function RootLayout({
         <DemoModeBanner />
         <ErrorBoundary>
           <SupabaseProvider initialSession={initialSession}>
-            {children}
+            <Header />
+            <main className="min-h-screen">
+              {children}
+            </main>
           </SupabaseProvider>
         </ErrorBoundary>
       </body>
