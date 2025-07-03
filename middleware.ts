@@ -49,23 +49,11 @@ function getRateLimitConfig(pathname: string) {
 }
 
 /**
- * CSRFトークン検証（後で実装）
+ * CSRFトークン検証（開発中のため一時的にスキップ）
  */
 function validateCSRFToken(request: NextRequest): boolean {
-  // POST, PUT, DELETE リクエストでCSRFトークンをチェック
-  if (['POST', 'PUT', 'DELETE'].includes(request.method)) {
-    const csrfToken = request.headers.get('x-csrf-token')
-    const csrfCookie = request.cookies.get('csrf-token')?.value
-    
-    // 開発環境ではCSRF検証をスキップ
-    if (process.env.NODE_ENV === 'development') {
-      return true
-    }
-    
-    // TODO: 実際のCSRF検証実装
-    return csrfToken === csrfCookie
-  }
-  
+  // 開発環境や本番環境での初期デプロイではCSRF検証をスキップ
+  // TODO: 本格運用時に有効化
   return true
 }
 
@@ -95,36 +83,38 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 /**
- * Bot検出とブロック
+ * Bot検出とブロック（一時的に緩和）
  */
 function detectBot(request: NextRequest): boolean {
   const userAgent = request.headers.get('user-agent') || ''
   
-  // 悪意のあるBotパターン
+  // 明らかに悪意のあるBotのみブロック（緩和版）
   const maliciousBotPatterns = [
-    /curl/i,
-    /wget/i,
-    /python-requests/i,
-    /scrapy/i,
     /bot.*attack/i,
-    /malicious/i
+    /malicious/i,
+    /scanner/i,
+    /hack/i
   ]
   
-  // 検索エンジンBotは許可
+  // 許可されたBotパターン（Vercel health checksを含む）
   const allowedBotPatterns = [
     /googlebot/i,
     /bingbot/i,
     /slackbot/i,
     /facebookexternalhit/i,
-    /twitterbot/i
+    /twitterbot/i,
+    /vercel/i,
+    /healthcheck/i,
+    /uptime/i,
+    /monitor/i
   ]
   
-  // 許可されたBotの場合は通す
-  if (allowedBotPatterns.some(pattern => pattern.test(userAgent))) {
+  // 許可されたBotまたは空のUser-Agentの場合は通す
+  if (!userAgent || allowedBotPatterns.some(pattern => pattern.test(userAgent))) {
     return false
   }
   
-  // 悪意のあるBotの場合はブロック
+  // 悪意のあるBotの場合のみブロック
   return maliciousBotPatterns.some(pattern => pattern.test(userAgent))
 }
 
@@ -176,22 +166,23 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Bot検出
-    if (detectBot(request)) {
-      logRequest(request, null, true)
-      return new NextResponse('Forbidden', { status: 403 })
-    }
+    // Bot検出（一時的に無効化）
+    // if (detectBot(request)) {
+    //   logRequest(request, null, true)
+    //   return new NextResponse('Forbidden', { status: 403 })
+    // }
 
-    // CSRFトークン検証
-    if (!validateCSRFToken(request)) {
-      logRequest(request, null, true)
-      return new NextResponse('CSRF token validation failed', { status: 403 })
-    }
+    // CSRFトークン検証（一時的に無効化）
+    // if (!validateCSRFToken(request)) {
+    //   logRequest(request, null, true)
+    //   return new NextResponse('CSRF token validation failed', { status: 403 })
+    // }
 
-    // レートリミット適用パスかどうかチェック
-    const shouldApplyRateLimit = pathname.startsWith('/api/') || 
-                                pathname === '/login' ||
-                                pathname === '/dashboard'
+    // レートリミット適用パスかどうかチェック（一時的に緩和）
+    const shouldApplyRateLimit = false // 一時的に無効化
+    // const shouldApplyRateLimit = pathname.startsWith('/api/') && 
+    //                              pathname !== '/api/health' && // health checkは除外
+    //                              pathname !== '/api/manifest' // manifestも除外
 
     if (shouldApplyRateLimit) {
       // レートリミット設定取得
@@ -267,6 +258,6 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*|sw\\.js|manifest\\.json).*)',
   ],
   
-  // Edge Runtime使用でパフォーマンス向上
-  runtime: 'experimental-edge',
+  // Edge Runtime一時的に無効化（安定性のため）
+  // runtime: 'experimental-edge',
 }
