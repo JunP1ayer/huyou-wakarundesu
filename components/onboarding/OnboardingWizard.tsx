@@ -17,7 +17,21 @@ interface OnboardingData {
   fuyou_limit?: number | null
 }
 
-const questions = [
+interface QuestionConfig {
+  id: keyof OnboardingData
+  step: number
+  title: string
+  question: string
+  description: string
+  type: 'boolean' | 'number'
+  options?: Array<{ value: boolean; label: string }>
+  placeholder?: string
+  suffix?: string
+  min?: number
+  max?: number
+}
+
+const questions: QuestionConfig[] = [
   {
     id: 'under_103_last_year',
     step: 1,
@@ -88,7 +102,7 @@ export default function OnboardingWizard() {
   const currentQuestion = questions[currentStep]
   const totalSteps = questions.length
 
-  const validateNumberInput = (value: string, question: { min?: number; max?: number }): string | null => {
+  const validateNumberInput = (value: string, question: QuestionConfig): string | null => {
     if (!value.trim()) {
       return '数字を入力してください'
     }
@@ -139,7 +153,7 @@ export default function OnboardingWizard() {
       setValidationError(null)
       // Restore previous value for number inputs
       if (questions[currentStep - 1].type === 'number') {
-        const prevValue = data[questions[currentStep - 1].id as keyof OnboardingData]
+        const prevValue = data[questions[currentStep - 1].id]
         setInputValue(prevValue ? String(prevValue) : '')
       }
     }
@@ -162,7 +176,7 @@ export default function OnboardingWizard() {
       const profileData = {
         user_id: user.id,
         is_student: finalData.under_103_last_year === true, // Assume student if under 103万 last year
-        weekly_hours: finalData.weekly_hours,
+        weekly_hours: finalData.weekly_hours ?? 0,
         fuyou_line: calculateFuyouLine(finalData),
         hourly_wage: finalData.annual_income && finalData.weekly_hours 
           ? Math.round(finalData.annual_income / (finalData.weekly_hours * 52))
@@ -182,8 +196,8 @@ export default function OnboardingWizard() {
         user_id: user.id,
         ytd_income: finalData.annual_income || 0,
         remaining: Math.max(0, profileData.fuyou_line - (finalData.annual_income || 0)),
-        remaining_hours: finalData.weekly_hours 
-          ? Math.max(0, (profileData.fuyou_line - (finalData.annual_income || 0)) / (profileData.hourly_wage * finalData.weekly_hours))
+        remaining_hours: finalData.weekly_hours && profileData.hourly_wage
+          ? Math.max(0, (profileData.fuyou_line - (finalData.annual_income || 0)) / profileData.hourly_wage)
           : 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
