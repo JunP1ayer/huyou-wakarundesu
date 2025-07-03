@@ -95,7 +95,6 @@ export default function LoginPage() {
             include_granted_scopes: 'true', // 段階的権限付与
           },
           scopes: 'openid email profile', // 必要最小限のスコープ
-          flowType: 'pkce',              // セキュリティ強化（PKCE）
         }
       })
 
