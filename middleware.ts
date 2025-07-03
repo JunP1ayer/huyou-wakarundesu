@@ -85,7 +85,16 @@ export async function middleware(request: NextRequest) {
   }
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/api/health', '/api/manifest']
+  const publicRoutes = [
+    '/', 
+    '/login', 
+    '/signup', 
+    '/api/health', 
+    '/api/manifest', 
+    '/api/classifyFuyou',
+    '/api/moneytree/connect',  // テスト用にpublic化
+    '/api/moneytree/sync'      // テスト用にpublic化
+  ]
   const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))
   
   if (isPublicRoute) {

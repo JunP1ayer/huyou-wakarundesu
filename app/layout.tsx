@@ -5,6 +5,8 @@ import { GA_ID } from '@/lib/gtag';
 import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import DemoModeBanner from '@/components/DemoModeBanner';
+import SupabaseProvider from '@/components/providers/SupabaseProvider';
+import { getServerSession } from '@/lib/supabase-server-session';
 import "./globals.css";
 import '@/lib/debugAuth';
 
@@ -45,11 +47,14 @@ export function generateViewport() {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch initial session on server for SSR
+  const initialSession = await getServerSession()
+  
   return (
     <html lang="ja">
       <head>
@@ -62,7 +67,9 @@ export default function RootLayout({
         <ServiceWorkerTracker />
         <DemoModeBanner />
         <ErrorBoundary>
-          {children}
+          <SupabaseProvider initialSession={initialSession}>
+            {children}
+          </SupabaseProvider>
         </ErrorBoundary>
       </body>
     </html>

@@ -1,7 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
-// Server client for server components and API routes
+// Server client for server components and API routes (user-based)
 export async function createSupabaseServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -41,4 +42,26 @@ export async function createSupabaseServerClient() {
       },
     }
   )
+}
+
+// Admin client for API routes (service role key)
+export function createSupabaseAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  // Debug logs
+  console.log('URL:', url)
+  console.log('Service Role Key Present:', !!serviceRoleKey)
+  
+  if (!url || !serviceRoleKey) {
+    console.error('Supabase admin client: Missing environment variables')
+    return null
+  }
+  
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
 }

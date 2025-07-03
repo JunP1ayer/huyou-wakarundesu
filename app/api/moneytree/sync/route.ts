@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { moneytreeClient } from '@/lib/moneytree'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseAdminClient } from '@/lib/supabase-server'
 
 export async function POST() {
   try {
-    // Verify user is authenticated
-    const supabase = await createSupabaseServerClient()
+    // Initialize admin client for API route
+    const supabase = createSupabaseAdminClient()
     
     if (!supabase) {
       return NextResponse.json({ error: 'Failed to initialize database connection' }, { status: 500 })
