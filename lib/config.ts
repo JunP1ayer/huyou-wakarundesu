@@ -1,4 +1,23 @@
 // Centralized configuration with fallbacks
+// Helper function to check if a value is a valid (non-placeholder) environment variable
+const isValidEnvValue = (value: string | undefined): boolean => {
+  if (!value) return false
+  
+  // Check for common placeholder patterns
+  const placeholderPatterns = [
+    'your-',
+    'YOUR_',
+    'replace-me',
+    'REPLACE_ME',
+    'example.com',
+    'localhost:3000',
+    'sk-test-',
+    'sk-live-',
+  ]
+  
+  return !placeholderPatterns.some(pattern => value.includes(pattern))
+}
+
 export const config = {
   supabase: {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -19,8 +38,14 @@ export const config = {
     version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
     url: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
-  isDemoMode: !process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NODE_ENV === 'production',
-  isConfigured: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  get isDemoMode() {
+    return !isValidEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) || 
+           !isValidEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  },
+  get isConfigured() {
+    return isValidEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) && 
+           isValidEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  },
 }
 
 // Validate required environment variables
@@ -40,12 +65,13 @@ export function validateEnvironment(): {
     'SENTRY_DSN': config.sentry.dsn,
   }
   
+  // Use isValidEnvValue for proper validation
   const missing = Object.entries(required)
-    .filter(([, value]) => !value)
+    .filter(([, value]) => !isValidEnvValue(value))
     .map(([key]) => key)
   
   const warnings = Object.entries(optional)
-    .filter(([, value]) => !value)
+    .filter(([, value]) => !isValidEnvValue(value))
     .map(([key]) => key)
   
   return {

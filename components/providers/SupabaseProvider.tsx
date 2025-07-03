@@ -26,10 +26,26 @@ export default function SupabaseProvider({
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
+  // Helper function to check if a value is a valid (non-placeholder) environment variable
+  const isValidEnvValue = (value: string): boolean => {
+    if (!value) return false
+    
+    const placeholderPatterns = [
+      'your-',
+      'YOUR_',
+      'replace-me',
+      'REPLACE_ME',
+      'example.com',
+      'localhost:3000',
+    ]
+    
+    return !placeholderPatterns.some(pattern => value.includes(pattern))
+  }
+
   // Create Supabase client or null for demo mode
   const [supabase] = useState(() => {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn('🟡 DEMO MODE: Missing Supabase credentials')
+    if (!isValidEnvValue(supabaseUrl) || !isValidEnvValue(supabaseAnonKey)) {
+      console.warn('🟡 DEMO MODE: Invalid or missing Supabase credentials')
       if (typeof window !== 'undefined') {
         window.__demo_mode = true
       }
