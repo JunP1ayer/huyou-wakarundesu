@@ -39,24 +39,17 @@ export function createSupabaseClient(): SupabaseClient | null {
     return null
   }
   
-  // Create singleton instance with proper cookie configuration
+  // Create singleton instance with @supabase/ssr proper configuration
   const client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      // Critical: Enable persistent sessions
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-    // Explicit cookie configuration for production compatibility
+    // @supabase/ssr uses these specific options
     cookieOptions: {
       name: supabaseUrl ? `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token` : 'sb-auth-token',
-      domain: '', // Use current domain (works for Preview + Production)
+      lifetime: 60 * 60 * 24 * 7, // 7 days (SSR uses 'lifetime' not 'maxAge')
+      domain: undefined, // Use current domain
       path: '/',
-      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     },
-    isSingleton: true
+    isSingleton: true,
   })
   
   // Store singleton instance
