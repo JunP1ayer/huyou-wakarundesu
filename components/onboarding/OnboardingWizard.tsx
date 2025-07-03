@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
 import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
+import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 interface OnboardingData {
@@ -82,12 +83,12 @@ export default function OnboardingWizard() {
   const [inputValue, setInputValue] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const router = useRouter()
-  const { isOpen, openChat, closeChat, handleComplete } = useFuyouChat()
+  const { isOpen, openChat, closeChat } = useFuyouChat()
 
   const currentQuestion = questions[currentStep]
   const totalSteps = questions.length
 
-  const validateNumberInput = (value: string, question: any): string | null => {
+  const validateNumberInput = (value: string, question: { min?: number; max?: number }): string | null => {
     if (!value.trim()) {
       return '数字を入力してください'
     }
@@ -211,20 +212,20 @@ export default function OnboardingWizard() {
     return 1030000 // 103万円 (default)
   }
 
-  const handleChatComplete = (result: any) => {
+  const handleChatComplete = (result: FuyouClassificationResult) => {
     setData(prev => ({
       ...prev,
       fuyou_category: result.category,
-      fuyou_limit: result.limitIncome
+      fuyou_limit: result.limit
     }))
     closeChat()
     
     // Skip to final step after chat completion
-    if (result.limitIncome) {
+    if (result.limit) {
       const finalData = {
         ...data,
         fuyou_category: result.category,
-        fuyou_limit: result.limitIncome
+        fuyou_limit: result.limit
       }
       handleOnboardingComplete(finalData)
     }
