@@ -48,11 +48,18 @@ export function debugAuth() {
     }
   }
   
-  // 4. Network Test
+  // 4. Network Test - Both Issues
   console.log('\n🌐 NETWORK TEST:')
+  
+  // Test manifest.json (Issue 1)
   fetch('/manifest.json')
     .then(response => {
-      console.log(`   /manifest.json: ${response.status} ${response.statusText}`)
+      const status = response.status
+      console.log(`   /manifest.json: ${status} ${response.statusText} ${status === 200 ? '✅' : '❌'}`)
+      
+      if (status === 401) {
+        console.log('   🔧 FIX: Middleware matcher not excluding manifest.json')
+      }
       
       // Check debug headers
       const debugHeaders = [
@@ -73,6 +80,26 @@ export function debugAuth() {
     .catch(error => {
       console.log(`   ❌ Network Error: ${error.message}`)
     })
+  
+  // Test cookie attributes (Issue 2)
+  if (typeof document !== 'undefined') {
+    const supabaseCookies = document.cookie.split('; ').filter(c => c.startsWith('sb-'))
+    if (supabaseCookies.length > 0) {
+      console.log('\n🍪 COOKIE ATTRIBUTES ANALYSIS:')
+      
+      // Use document.cookie to get basic info, but recommend DevTools for full details
+      supabaseCookies.forEach(cookie => {
+        const [name] = cookie.split('=')
+        console.log(`   📋 Cookie Name: ${name}`)
+      })
+      
+      console.log('   💡 Check DevTools → Application → Cookies for full attributes:')
+      console.log('      - Domain: should be empty or match current domain')
+      console.log('      - Path: should be /')
+      console.log('      - Secure: true for HTTPS, false for HTTP')
+      console.log('      - SameSite: Lax')
+    }
+  }
   
   // 5. Recommendations
   console.log('\n💡 RECOMMENDATIONS:')

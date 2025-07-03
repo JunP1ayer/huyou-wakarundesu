@@ -124,8 +124,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * But DO include manifest.json and other root-level files
+     * - manifest.json (PWA manifest - must be public)
+     * - robots.txt, sitemap.xml (SEO files)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|_next/data|favicon\\.ico$|manifest\\.json$|robots\\.txt$|sitemap\\.xml$).*)',
   ],
 }
