@@ -9,7 +9,6 @@ import { useThresholdNotifier } from '@/hooks/useThresholdNotifier'
 import { calculateRemaining } from '@/lib/fuyouClassifier'
 import { useToastFallback } from '@/components/notifications/Toast'
 import LoginPrompt from '@/components/auth/LoginPrompt'
-import { demoStorage } from '@/lib/demo-data'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import DashboardSkeleton, { ChartSkeleton, BankConnectionSkeleton } from './DashboardSkeleton'
 
@@ -57,28 +56,13 @@ export default function DashboardOptimized() {
     refetch
   } = useDashboardData()
 
-  // デモモード処理
-  const isDemoMode = useMemo(() => 
-    typeof window !== 'undefined' && window.__demo_mode,
-    []
-  )
-
-  // デモデータの取得（memoized）
-  const demoData = useMemo(() => {
-    if (!isDemoMode) return null
-    return {
-      profile: demoStorage.getProfile(),
-      stats: demoStorage.getStats()
-    }
-  }, [isDemoMode])
-
-  // 実際に使用するデータ（本番またはデモ）
-  const currentData = isDemoMode ? demoData : data
+  // 実際のデータを使用
+  const currentData = data
 
   // Threshold notification monitoring（memoized）
   const { showTestNotification } = useThresholdNotifier(
-    currentData?.stats?.ytd_income ?? 0,
-    currentData?.profile?.fuyou_line ?? 1030000
+    data?.stats?.ytd_income ?? 0,
+    data?.profile?.fuyou_line ?? 1030000
   )
 
   // 残り収入計算（memoized）
@@ -176,11 +160,6 @@ export default function DashboardOptimized() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">ダッシュボード</h1>
-          {isDemoMode && (
-            <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-              デモモード
-            </span>
-          )}
         </div>
         <button
           onClick={() => setShowSettings(true)}

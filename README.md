@@ -20,12 +20,11 @@ A mobile-first web application that helps Japanese users understand their depend
 ## 📐 Key Components
 
 ### 1. Onboarding Wizard
-5-question setup flow:
-- Student status (学生ですか？)
-- Support type (扶養の種類)
-- Insurance type (保険の種類)
-- Company size (勤務先の規模)
-- Weekly work hours (週の労働時間)
+4-question simplified setup flow:
+- Last year's income under 103万円? (昨年のアルバイト収入は103万円以下でしたか？)
+- Using family insurance? (親やご家族の健康保険証を使っていますか？)
+- Annual income amount (1年間の収入合計)
+- Weekly work hours (1週間の労働時間)
 
 ### 2. Dashboard
 - Big numbers display: remaining income (あと◯円) and hours (あと◯時間)
@@ -123,7 +122,7 @@ A mobile-first web application that helps Japanese users understand their depend
 
 ## 📱 User Flow
 
-1. **First Visit**: Onboarding wizard (5 questions) → Profile creation
+1. **First Visit**: Simplified onboarding wizard (4 questions) → Profile creation
 2. **Dashboard**: View remaining income/hours → Connect bank (optional)
 3. **Bank Sync**: OAuth flow → Automatic transaction import
 4. **Ongoing**: Real-time updates, warnings, manual sync
@@ -164,6 +163,41 @@ The app calculates personalized limits based on:
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
+
+## 📋 Release Notes
+
+### v1.3.0 - Demo Mode Removal & Question UX Simplification
+
+**Major Changes:**
+- ✅ **Complete Demo Mode Removal**: Removed all demo-related code, environment variables, and mock data functionality
+- ✅ **Simplified Onboarding Flow**: Reduced from 5 complex questions to 4 user-friendly questions
+- ✅ **Enhanced User Experience**: Added clear step indicators and improved question wording for students
+- ✅ **Updated Validation**: Improved form validation with user-friendly Japanese error messages
+
+**New Question Flow:**
+1. Q1: 昨年のアルバイト収入は103万円以下でしたか？ (Yes/No)
+2. Q2: 親やご家族の健康保険証を使っていますか？ (Yes/No)  
+3. Q3: 1年間（4月〜翌3月）の収入合計を入力してください (Number input)
+4. Q4: 1週間に平均どれくらい働いていますか？ (Number input)
+
+**UX Improvements:**
+- Step-by-step progress indicators (Step 1/4, Step 2/4, etc.)
+- Clear explanations for why each question is asked
+- Better input validation with helpful error messages
+- 44×44px minimum touch targets for mobile accessibility
+- Improved back navigation and input restoration
+
+**Technical Updates:**
+- Updated validation schemas for new question format
+- Removed all demo mode environment variables and fallback logic
+- Updated E2E tests to match new 4-question flow
+- Fixed TypeScript types and removed demo-related imports
+- Enhanced error handling and user feedback
+
+**Breaking Changes:**
+- `NEXT_PUBLIC_DEMO_MODE` environment variable is no longer supported
+- Onboarding data structure changed from 5-question to 4-question format
+- Demo mode APIs and mock data endpoints removed
 
 ## 📄 License
 

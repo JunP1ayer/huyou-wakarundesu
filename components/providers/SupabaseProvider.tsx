@@ -22,38 +22,14 @@ export default function SupabaseProvider({
   children, 
   initialSession = null 
 }: SupabaseProviderProps) {
-  // Get environment variables with fallback for demo mode
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE
+  // Get environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Helper function to check if a value is a valid (non-placeholder) environment variable
-  const isValidEnvValue = (value: string): boolean => {
-    if (!value) return false
-    
-    const placeholderPatterns = [
-      'your-',
-      'YOUR_',
-      'replace-me',
-      'REPLACE_ME',
-      'example.com',
-      'localhost:3000',
-    ]
-    
-    return !placeholderPatterns.some(pattern => value.includes(pattern))
-  }
-
-  // Create Supabase client or null for demo mode
+  // Create Supabase client
   const [supabase] = useState(() => {
-    // Force demo mode if explicitly enabled or if credentials are invalid
-    if (demoMode === 'true' || !isValidEnvValue(supabaseUrl) || !isValidEnvValue(supabaseAnonKey)) {
-      console.warn('🟡 CLIENT DEMO MODE: Invalid or missing Supabase credentials')
-      console.warn(`📊 Demo mode reasons: DEMO_MODE=${demoMode}, URL_VALID=${isValidEnvValue(supabaseUrl)}, KEY_VALID=${isValidEnvValue(supabaseAnonKey)}`)
-      
-      if (typeof window !== 'undefined') {
-        window.__demo_mode = true
-      }
-      return null
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables')
     }
 
     return createBrowserClient(supabaseUrl, supabaseAnonKey, {
@@ -75,31 +51,6 @@ export default function SupabaseProvider({
   const [loading, setLoading] = useState(!initialSession)
 
   useEffect(() => {
-    if (!supabase) {
-      // Demo mode - create mock session
-      setUser({
-        id: 'demo-user-001',
-        email: 'demo@example.com',
-        aud: 'authenticated',
-        role: 'authenticated',
-        app_metadata: {},
-        user_metadata: {},
-        created_at: new Date().toISOString(),
-      } as User)
-      setSession({
-        access_token: 'demo-token',
-        refresh_token: 'demo-refresh',
-        expires_in: 3600,
-        token_type: 'bearer',
-        user: {
-          id: 'demo-user-001',
-          email: 'demo@example.com',
-        } as User,
-      } as Session)
-      setLoading(false)
-      return
-    }
-
     // Get initial session
     const getInitialSession = async () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession()
@@ -126,7 +77,7 @@ export default function SupabaseProvider({
   }, [supabase, initialSession])
 
   const contextValue: SupabaseContext = {
-    supabase: supabase!,
+    supabase,
     user,
     session,
     loading,

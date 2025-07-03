@@ -71,44 +71,50 @@ const ValidationRules = {
  * 扶養計算用のスキーマ
  */
 export const FuyouValidationSchemas = {
-  // オンボーディング質問の回答
+  // オンボーディング質問の回答（新4問形式）
   onboardingAnswers: z.object({
-    question1: z.enum(['学生', '学生以外', '配偶者'], {
-      errorMap: () => ({ message: '質問1: 有効な選択肢を選んでください' })
+    under_103_last_year: z.boolean({
+      errorMap: () => ({ message: '質問1: 昨年の収入について選択してください' })
     }),
-    question2: z.enum(['週20時間未満', '週20時間以上'], {
-      errorMap: () => ({ message: '質問2: 有効な労働時間を選んでください' })
+    using_family_insurance: z.boolean({
+      errorMap: () => ({ message: '質問2: 健康保険について選択してください' })
     }),
-    question3: z.enum(['500人以下', '500人以上'], {
-      errorMap: () => ({ message: '質問3: 有効な会社規模を選んでください' })
-    }),
-    question4: z.enum(['扶養に入っている', '扶養に入っていない', '配偶者控除を受けている'], {
-      errorMap: () => ({ message: '質問4: 有効な扶養状況を選んでください' })
-    }),
-    question5: z.enum(['103万円以下に抑えたい', '社会保険の扶養を維持したい', '自由に働きたい'], {
-      errorMap: () => ({ message: '質問5: 有効な働き方を選んでください' })
-    })
+    annual_income: ValidationRules.currencyJPY.refine(
+      (val) => val >= 0 && val <= 5_000_000,
+      { message: '年間収入は0円〜500万円の範囲で入力してください' }
+    ),
+    weekly_hours: z.number()
+      .min(0, '労働時間は0時間以上である必要があります')
+      .max(40, '労働時間は40時間以下である必要があります')
+      .refine((val) => val >= 0, { message: '労働時間を正しく入力してください' })
   }),
 
-  // ユーザープロフィール
+  // ユーザープロフィール（新形式対応）
   userProfile: z.object({
     user_id: ValidationRules.userId,
-    is_student: z.boolean(),
+    is_student: z.boolean().optional(),
+    weekly_hours: z.number()
+      .min(0, '労働時間は0時間以上である必要があります')
+      .max(40, '労働時間は40時間以下である必要があります')
+      .optional(),
     fuyou_line: ValidationRules.currencyJPY,
     hourly_wage: ValidationRules.hourlyWage,
     created_at: ValidationRules.isoDate.optional(),
     updated_at: ValidationRules.isoDate.optional()
   }),
 
-  // ユーザー統計情報
+  // ユーザー統計情報（新形式対応）
   userStats: z.object({
     user_id: ValidationRules.userId,
     ytd_income: ValidationRules.currencyJPY,
+    remaining: ValidationRules.currencyJPY.optional(),
+    remaining_hours: z.number().min(0).optional(),
     transaction_count: z.number()
       .int('取引件数は整数である必要があります')
       .min(0, '取引件数は0以上である必要があります')
-      .max(10000, '取引件数は10000件以下である必要があります'),
-    last_calculated: ValidationRules.isoDate,
+      .max(10000, '取引件数は10000件以下である必要があります')
+      .optional(),
+    last_calculated: ValidationRules.isoDate.optional(),
     created_at: ValidationRules.isoDate.optional(),
     updated_at: ValidationRules.isoDate.optional()
   }),
@@ -129,11 +135,15 @@ export const FuyouValidationSchemas = {
     created_at: ValidationRules.isoDate.optional()
   }),
 
-  // プロフィール更新
+  // プロフィール更新（新形式対応）
   profileUpdate: z.object({
     fuyou_line: ValidationRules.currencyJPY.optional(),
     hourly_wage: ValidationRules.hourlyWage.optional(),
-    is_student: z.boolean().optional()
+    is_student: z.boolean().optional(),
+    weekly_hours: z.number()
+      .min(0, '労働時間は0時間以上である必要があります')
+      .max(40, '労働時間は40時間以下である必要があります')
+      .optional()
   }).refine(data => Object.keys(data).length > 0, {
     message: '少なくとも1つのフィールドを更新する必要があります'
   })

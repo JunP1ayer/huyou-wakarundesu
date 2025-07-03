@@ -11,7 +11,6 @@ import { calculateRemaining } from '@/lib/fuyouClassifier'
 import { useToastFallback } from '@/components/notifications/Toast'
 import LoginPrompt from '@/components/auth/LoginPrompt'
 import EmptyState from '@/components/dashboard/EmptyState'
-import { demoStorage } from '@/lib/demo-data'
 
 interface DashboardData {
   profile: UserProfile
@@ -41,11 +40,6 @@ export default function Dashboard() {
   }, [])
 
   const handleBankConnect = async () => {
-    // Check if in demo mode
-    if (typeof window !== 'undefined' && window.__demo_mode) {
-      showToast('デモモードでは銀行連携は利用できません', 'warning')
-      return
-    }
     
     setIsConnecting(true)
     try {
@@ -68,11 +62,6 @@ export default function Dashboard() {
   }
 
   const handleSyncTransactions = async () => {
-    // Check if in demo mode
-    if (typeof window !== 'undefined' && window.__demo_mode) {
-      showToast('デモモードでは同期機能は利用できません', 'warning')
-      return
-    }
     
     setIsSyncing(true)
     try {
@@ -104,16 +93,6 @@ export default function Dashboard() {
       setAuthError(false)
       setNeedsSetup(false)
       
-      // Check if we're in demo mode
-      if (typeof window !== 'undefined' && window.__demo_mode) {
-        // Use demo data
-        const profile = demoStorage.getProfile()
-        const stats = demoStorage.getStats()
-        setData({ profile, stats })
-        setBankConnected(false) // No bank connection in demo mode
-        setLoading(false)
-        return
-      }
       
       const authClient = await getAuthenticatedSupabaseClient()
       

@@ -5,266 +5,355 @@ import { useRouter } from 'next/navigation'
 import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
 import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 interface OnboardingData {
-  is_student: boolean | null
-  support_type: 'full' | 'partial' | 'none' | null
-  insurance: 'national' | 'employee' | 'none' | null
-  company_large: boolean | null
-  weekly_hours: number | null
+  under_103_last_year: boolean | null  // Q1: 昨年収入103万円以下か
+  using_family_insurance: boolean | null  // Q2: 家族の健康保険使用か
+  annual_income: number | null  // Q3: 年間収入合計
+  weekly_hours: number | null  // Q4: 週労働時間
   fuyou_category?: string | null
   fuyou_limit?: number | null
 }
 
 const questions = [
   {
-    id: 'is_student',
-    title: '学生ですか？',
-    description: '現在、大学・専門学校などに在学中ですか？',
+    id: 'under_103_last_year',
+    step: 1,
+    title: 'Step 1/4 収入の確認',
+    question: '昨年のアルバイト収入は 103 万円以下でしたか？',
+    description: '※扶養控除の判定に必要な情報です',
+    type: 'boolean' as const,
     options: [
-      { value: true, label: 'はい、学生です' },
-      { value: false, label: 'いいえ、学生ではありません' }
+      { value: true, label: 'はい、103万円以下でした' },
+      { value: false, label: 'いいえ、103万円を超えていました' }
     ]
   },
   {
-    id: 'support_type',
-    title: '扶養の種類は？',
-    description: '現在の扶養状況を教えてください',
+    id: 'using_family_insurance',
+    step: 2,
+    title: 'Step 2/4 健康保険の確認',
+    question: '親やご家族の健康保険証を使っていますか？',
+    description: '※社会保険の扶養判定に必要な情報です',
+    type: 'boolean' as const,
     options: [
-      { value: 'full', label: '完全扶養（年間収入ゼロ〜数万円）' },
-      { value: 'partial', label: '103万円以内（アルバイト収入あり）' },
-      { value: 'none', label: '扶養に入っていない' }
+      { value: true, label: 'はい、家族の保険証を使っています' },
+      { value: false, label: 'いいえ、自分で加入しています' }
     ]
   },
   {
-    id: 'insurance',
-    title: '保険の種類は？',
-    description: '加入している健康保険を教えてください',
-    options: [
-      { value: 'national', label: '国民健康保険（自分で加入）' },
-      { value: 'employee', label: '親の健康保険（扶養として加入）' },
-      { value: 'none', label: 'よくわからない' }
-    ]
-  },
-  {
-    id: 'company_large',
-    title: '勤務先の規模は？',
-    description: '働いている会社の従業員数はどれくらいですか？',
-    options: [
-      { value: true, label: '大企業（従業員501人以上）' },
-      { value: false, label: '中小企業（従業員500人以下）' }
-    ]
+    id: 'annual_income',
+    step: 3,
+    title: 'Step 3/4 年間収入の入力',
+    question: '1年間（4月〜翌3月）の収入合計を入力してください',
+    description: '※正確な扶養判定のため、見込み額を入力してください',
+    type: 'number' as const,
+    placeholder: '例: 800000',
+    suffix: '円',
+    min: 0,
+    max: 5000000
   },
   {
     id: 'weekly_hours',
-    title: '週の労働時間は？',
-    description: '1週間に何時間くらい働いていますか？',
-    options: [
-      { value: 10, label: '10時間未満' },
-      { value: 15, label: '10-15時間' },
-      { value: 20, label: '15-20時間' },
-      { value: 25, label: '20-25時間' },
-      { value: 30, label: '25時間以上' }
-    ]
+    step: 4,
+    title: 'Step 4/4 労働時間の入力',
+    question: '1週間に平均どれくらい働いていますか？',
+    description: '※社会保険加入要件の判定に使用します',
+    type: 'number' as const,
+    placeholder: '例: 20',
+    suffix: '時間',
+    min: 0,
+    max: 40
   }
 ]
 
 export default function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<OnboardingData>({
-    is_student: null,
-    support_type: null,
-    insurance: null,
-    company_large: null,
+    under_103_last_year: null,
+    using_family_insurance: null,
+    annual_income: null,
     weekly_hours: null,
     fuyou_category: null,
     fuyou_limit: null
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [inputValue, setInputValue] = useState('')
+  const [validationError, setValidationError] = useState<string | null>(null)
   const router = useRouter()
   const { isOpen, openChat, closeChat, handleComplete } = useFuyouChat()
 
   const currentQuestion = questions[currentStep]
   const totalSteps = questions.length
 
+  const validateNumberInput = (value: string, question: any): string | null => {
+    if (!value.trim()) {
+      return '数字を入力してください'
+    }
+    
+    const numValue = parseFloat(value)
+    if (isNaN(numValue)) {
+      return '有効な数字を入力してください'
+    }
+    
+    if (question.min !== undefined && numValue < question.min) {
+      return `${question.min}以上の値を入力してください`
+    }
+    
+    if (question.max !== undefined && numValue > question.max) {
+      return `${question.max}以下の値を入力してください`
+    }
+    
+    return null
+  }
+
   const handleAnswer = (value: boolean | string | number) => {
+    setValidationError(null)
+    
+    // Number input validation
+    if (currentQuestion.type === 'number' && typeof value === 'string') {
+      const error = validateNumberInput(value, currentQuestion)
+      if (error) {
+        setValidationError(error)
+        return
+      }
+      value = parseFloat(value)
+    }
+
     const newData = { ...data, [currentQuestion.id]: value }
     setData(newData)
 
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1)
+      setInputValue('')
     } else {
       handleOnboardingComplete(newData)
-    }
-  }
-
-  const handleOnboardingComplete = async (finalData: OnboardingData) => {
-    setIsLoading(true)
-    try {
-      const authClient = await getAuthenticatedSupabaseClient()
-      
-      if (!authClient) {
-        throw new Error('User not authenticated')
-      }
-      
-      const { supabase, user } = authClient
-
-      // Calculate fuyou_line based on answers or chat result
-      let fuyou_line = finalData.fuyou_limit || 1030000 // Use chat result or default
-      if (!finalData.fuyou_limit && finalData.is_student) {
-        fuyou_line = 1300000 // Student limit is higher if no chat result
-      }
-
-      const profileData = {
-        user_id: user.id,
-        is_student: finalData.is_student || false,
-        support_type: finalData.support_type || 'none',
-        insurance: finalData.insurance || 'none',
-        company_large: finalData.company_large || false,
-        weekly_hours: finalData.weekly_hours || 0,
-        fuyou_line,
-        hourly_wage: 1200 // Default hourly wage
-      }
-
-      const { error } = await supabase
-        .from('user_profile')
-        .upsert(profileData)
-
-      if (error) throw error
-
-      router.push('/dashboard')
-    } catch (error) {
-      console.error('Error saving profile:', error)
-      setError('プロフィールの保存中にエラーが発生しました。再度お試しください。')
-    } finally {
-      setIsLoading(false)
     }
   }
 
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
+      setValidationError(null)
+      // Restore previous value for number inputs
+      if (questions[currentStep - 1].type === 'number') {
+        const prevValue = data[questions[currentStep - 1].id as keyof OnboardingData]
+        setInputValue(prevValue ? String(prevValue) : '')
+      }
     }
   }
 
-  const handleUnknown = async () => {
-    const isStudent = data.is_student ?? true // Default to student if not set
-    const result = await openChat(isStudent)
+  const handleOnboardingComplete = async (finalData: OnboardingData) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const authClient = await getAuthenticatedSupabaseClient()
+      if (!authClient) {
+        setError('認証が必要です。ログインしてください。')
+        return
+      }
+
+      const { supabase, user } = authClient
+
+      // Convert new data format to legacy profile format
+      const profileData = {
+        user_id: user.id,
+        is_student: finalData.under_103_last_year === true, // Assume student if under 103万 last year
+        weekly_hours: finalData.weekly_hours,
+        fuyou_line: calculateFuyouLine(finalData),
+        hourly_wage: finalData.annual_income && finalData.weekly_hours 
+          ? Math.round(finalData.annual_income / (finalData.weekly_hours * 52))
+          : 1200, // Default wage
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      const { error: profileError } = await supabase
+        .from('user_profile')
+        .upsert(profileData, { onConflict: 'user_id' })
+
+      if (profileError) throw profileError
+
+      // Create initial stats
+      const statsData = {
+        user_id: user.id,
+        ytd_income: finalData.annual_income || 0,
+        remaining: Math.max(0, profileData.fuyou_line - (finalData.annual_income || 0)),
+        remaining_hours: finalData.weekly_hours 
+          ? Math.max(0, (profileData.fuyou_line - (finalData.annual_income || 0)) / (profileData.hourly_wage * finalData.weekly_hours))
+          : 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      const { error: statsError } = await supabase
+        .from('user_stats')
+        .upsert(statsData, { onConflict: 'user_id' })
+
+      if (statsError) throw statsError
+
+      router.push('/dashboard')
+    } catch (err) {
+      console.error('Onboarding error:', err)
+      setError('設定の保存に失敗しました。もう一度お試しください。')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const calculateFuyouLine = (data: OnboardingData): number => {
+    // Simple logic: if family insurance and under 103万 last year, likely student with 130万 line
+    if (data.using_family_insurance && data.under_103_last_year) {
+      return 1300000 // 130万円
+    }
+    return 1030000 // 103万円 (default)
+  }
+
+  const handleChatComplete = (result: any) => {
+    setData(prev => ({
+      ...prev,
+      fuyou_category: result.category,
+      fuyou_limit: result.limitIncome
+    }))
+    closeChat()
     
-    if (result) {
-      // Update data with classification result
-      const newData = { 
-        ...data, 
+    // Skip to final step after chat completion
+    if (result.limitIncome) {
+      const finalData = {
+        ...data,
         fuyou_category: result.category,
-        fuyou_limit: result.limit
+        fuyou_limit: result.limitIncome
       }
-      setData(newData)
-      
-      // Auto-complete the onboarding with smart defaults based on classification
-      const finalData: OnboardingData = {
-        ...newData,
-        support_type: result.category === '扶養外' ? 'none' as const : 'partial' as const,
-        insurance: 'employee' as const, // Most common case
-        company_large: false,  // Conservative estimate
-        weekly_hours: data.weekly_hours || 15 // Default moderate hours
-      }
-      
       handleOnboardingComplete(finalData)
     }
   }
 
-  if (isLoading) {
+  if (isOpen) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">プロフィールを保存中...</p>
-        </div>
-      </div>
+      <UnknownFuyouChat 
+        isOpen={isOpen}
+        isStudent={data.under_103_last_year === true}
+        onClose={closeChat}
+        onComplete={handleChatComplete}
+      />
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
-      {/* Header with progress */}
-      <div className="bg-white shadow-sm px-4 py-6">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex space-x-2">
-              {questions.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-2 w-8 rounded-full ${
-                    index <= currentStep ? 'bg-indigo-600' : 'bg-gray-200'
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-sm text-gray-500 font-medium">
-              {currentStep + 1}/{totalSteps}
-            </span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="max-w-md mx-auto">
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>{currentQuestion.title}</span>
+            <span>{currentStep + 1}/{totalSteps}</span>
           </div>
-          {currentStep > 0 && (
-            <button
-              onClick={handleBack}
-              className="text-indigo-600 text-sm font-medium hover:text-indigo-800"
-            >
-              ← 戻る
-            </button>
-          )}
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Question Card */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 mb-3">
-                {currentQuestion.title}
-              </h1>
-              <p className="text-gray-600 leading-relaxed">
-                {currentQuestion.description}
-              </p>
-              {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              )}
+        {/* Question Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-3">
+              {currentQuestion.question}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {currentQuestion.description}
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{error}</p>
             </div>
+          )}
 
+          {/* Boolean Questions */}
+          {currentQuestion.type === 'boolean' && (
             <div className="space-y-3">
-              {currentQuestion.options.map((option, index) => (
+              {currentQuestion.options?.map((option) => (
                 <button
-                  key={index}
+                  key={String(option.value)}
                   onClick={() => handleAnswer(option.value)}
-                  className="w-full p-4 text-left bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 border-2 border-transparent rounded-xl transition-all duration-200 font-medium text-gray-800 hover:text-indigo-900"
+                  className="w-full min-h-[44px] p-4 text-left bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 border border-gray-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {option.label}
                 </button>
               ))}
             </div>
+          )}
 
-            <div className="mt-6 pt-6 border-t border-gray-100">
+          {/* Number Input Questions */}
+          {currentQuestion.type === 'number' && (
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type="number"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={currentQuestion.placeholder}
+                  min={currentQuestion.min}
+                  max={currentQuestion.max}
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                {currentQuestion.suffix && (
+                  <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    {currentQuestion.suffix}
+                  </span>
+                )}
+              </div>
+              
+              {validationError && (
+                <p className="text-sm text-red-600">{validationError}</p>
+              )}
+              
               <button
-                onClick={handleUnknown}
-                className="w-full p-3 text-center text-gray-500 hover:text-gray-700 text-sm font-medium"
+                onClick={() => handleAnswer(inputValue)}
+                disabled={!inputValue.trim()}
+                className="w-full min-h-[44px] bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                わからない？
+                {currentStep === totalSteps - 1 ? '設定完了' : '次へ'}
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* Chat Modal */}
-      <UnknownFuyouChat
-        isOpen={isOpen}
-        isStudent={data.is_student ?? true}
-        onClose={closeChat}
-        onComplete={handleComplete}
-      />
+        {/* Navigation */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={handleBack}
+            disabled={currentStep === 0}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            戻る
+          </button>
+
+          <button
+            onClick={() => openChat(data.under_103_last_year === true)}
+            className="px-4 py-2 text-indigo-600 hover:text-indigo-800 font-medium min-h-[44px]"
+          >
+            わからない？
+          </button>
+        </div>
+
+        {isLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <span>設定を保存中...</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

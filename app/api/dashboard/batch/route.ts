@@ -14,50 +14,11 @@ export async function GET(request: NextRequest) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    // Demo mode: Return mock data if Supabase credentials are missing
-    if (!url || !key || process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-      console.log('🟡 Dashboard batch API - Demo mode: Returning mock data')
-      
-      const mockResponse = {
-        user_id: 'demo-user-001',
-        timestamp: new Date().toISOString(),
-        performance: {
-          execution_time_ms: Date.now() - startTime,
-          parallel_requests: 3,
-          demo_mode: true
-        },
-        profile: {
-          user_id: 'demo-user-001',
-          is_student: true,
-          support_type: 'partial',
-          insurance: 'employee',
-          company_large: false,
-          weekly_hours: 15,
-          fuyou_line: 1030000,
-          hourly_wage: 1200,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        stats: {
-          user_id: 'demo-user-001',
-          ytd_income: 450000,
-          transaction_count: 25,
-          last_calculated: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        bank_connected: false,
-        bank_info: null
-      }
-
-      return NextResponse.json(mockResponse, {
-        status: 200,
-        headers: {
-          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-          'X-Execution-Time': `${Date.now() - startTime}ms`,
-          'X-Demo-Mode': 'true'
-        }
-      })
+    if (!url || !key) {
+      return NextResponse.json(
+        { error: 'Missing Supabase configuration' },
+        { status: 500 }
+      )
     }
 
     const supabase = createServerClient(url, key, {

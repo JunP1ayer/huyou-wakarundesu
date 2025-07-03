@@ -30,33 +30,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Check for demo mode
-    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !process.env.OPENAI_API_KEY) {
-      console.log('🟡 ClassifyFuyou API - Demo mode: Returning mock classification result')
-      
-      // Mock classification result based on input
-      const mockResult: FuyouClassificationResult = {
-        category: isStudent ? '130万円社保外' : '103万円扶養',
-        limitIncome: isStudent ? 1300000 : 1030000,
-        reason: isStudent 
-          ? 'デモモード: 学生の場合、年収130万円以内であれば扶養控除の対象となります。'
-          : 'デモモード: 一般的には年収103万円以内であれば所得税の扶養控除対象となります。'
-      }
-
-      // Track demo mode usage
-      trackEvent.openaiClassifySuccess(mockResult.category, mockResult.limitIncome)
-
-      Sentry.addBreadcrumb({
-        message: 'Mock classification completed (demo mode)',
-        level: 'info',
-        data: {
-          category: mockResult.category,
-          limitIncome: mockResult.limitIncome,
-          demo_mode: true
-        }
-      })
-
-      return NextResponse.json(mockResult)
+    // Check for required OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured' },
+        { status: 500 }
+      )
     }
 
     // Dynamically import OpenAI function to avoid build-time initialization

@@ -4,7 +4,6 @@ import { GoogleAnalytics } from 'nextjs-google-analytics';
 import { GA_ID } from '@/lib/gtag';
 import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import DemoModeBanner from '@/components/DemoModeBanner';
 import SupabaseProvider from '@/components/providers/SupabaseProvider';
 import Header from '@/components/navigation/Header';
 import { getServerSession } from '@/lib/supabase-server-session';
@@ -59,7 +58,7 @@ export default async function RootLayout({
     initialSession = await getServerSession()
   } catch (error) {
     console.error('🔴 SSR Session fetch failed, using null:', error)
-    // Fall back to null - client will handle demo mode
+    // Fall back to null - client will handle authentication
   }
   
   return (
@@ -72,7 +71,6 @@ export default async function RootLayout({
       >
         {GA_ID && <GoogleAnalytics trackPageViews />}
         <ServiceWorkerTracker />
-        <DemoModeBanner />
         <ErrorBoundary>
           <SupabaseProvider initialSession={initialSession}>
             <Header />

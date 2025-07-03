@@ -1,328 +1,200 @@
 /**
- * オンボーディングフロー E2Eテスト
+ * オンボーディングフロー E2Eテスト（新4問形式）
  * ユーザーが最初に利用する際の完全なフローをテスト
  */
 
 import { test, expect, Page } from '@playwright/test'
 
-// ヘルパー関数
+// ヘルパー関数：新4問形式のオンボーディング完了
 async function completeOnboarding(page: Page, answers: {
-  question1: string,
-  question2: string,
-  question3: string,
-  question4: string,
-  question5: string
+  under_103_last_year: boolean,
+  using_family_insurance: boolean,
+  annual_income: string,
+  weekly_hours: string
 }) {
   // オンボーディング開始
   await page.goto('/')
-  await page.click('text=はじめる')
+  
+  // 質問1: 昨年のアルバイト収入は 103 万円以下でしたか？
+  await expect(page.locator('h2')).toContainText('昨年のアルバイト収入は 103 万円以下でしたか？')
+  if (answers.under_103_last_year) {
+    await page.click('text=はい、103万円以下でした')
+  } else {
+    await page.click('text=いいえ、103万円を超えていました')
+  }
 
-  // 質問1: 学生かどうか
-  await expect(page.locator('h2')).toContainText('質問 1')
-  await page.click(`text=${answers.question1}`)
+  // 質問2: 親やご家族の健康保険証を使っていますか？
+  await expect(page.locator('h2')).toContainText('親やご家族の健康保険証を使っていますか？')
+  if (answers.using_family_insurance) {
+    await page.click('text=はい、家族の保険証を使っています')
+  } else {
+    await page.click('text=いいえ、自分で加入しています')
+  }
+
+  // 質問3: 1年間（4月〜翌3月）の収入合計を入力してください
+  await expect(page.locator('h2')).toContainText('1年間（4月〜翌3月）の収入合計を入力してください')
+  await page.fill('input[type="number"]', answers.annual_income)
   await page.click('text=次へ')
 
-  // 質問2: 労働時間
-  await expect(page.locator('h2')).toContainText('質問 2')
-  await page.click(`text=${answers.question2}`)
-  await page.click('text=次へ')
-
-  // 質問3: 会社規模
-  await expect(page.locator('h2')).toContainText('質問 3')
-  await page.click(`text=${answers.question3}`)
-  await page.click('text=次へ')
-
-  // 質問4: 扶養状況
-  await expect(page.locator('h2')).toContainText('質問 4')
-  await page.click(`text=${answers.question4}`)
-  await page.click('text=次へ')
-
-  // 質問5: 希望する扶養範囲
-  await expect(page.locator('h2')).toContainText('質問 5')
-  await page.click(`text=${answers.question5}`)
-  await page.click('text=結果を見る')
+  // 質問4: 1週間に平均どれくらい働いていますか？
+  await expect(page.locator('h2')).toContainText('1週間に平均どれくらい働いていますか？')
+  await page.fill('input[type="number"]', answers.weekly_hours)
+  await page.click('text=設定完了')
 }
 
-test.describe('オンボーディングフロー', () => {
+test.describe('オンボーディングフロー（新4問形式）', () => {
   test.beforeEach(async ({ page }) => {
-    // デモモードの有効化
-    await page.addInitScript(() => {
-      window.__demo_mode = true
-    })
-  })
-
-  test('標準的な学生ユーザーのオンボーディング @smoke', async ({ page }) => {
-    await test.step('ランディングページの表示確認', async () => {
-      await page.goto('/')
-      
-      // ページタイトルの確認
-      await expect(page).toHaveTitle(/扶養わかるんです/)
-      
-      // メインキャッチコピーの確認
-      await expect(page.locator('h1')).toContainText('扶養わかるんです')
-      
-      // はじめるボタンが表示されている
-      await expect(page.locator('text=はじめる')).toBeVisible()
-      
-      // デモモード表示の確認
-      await expect(page.locator('text=デモモード')).toBeVisible()
-    })
-
-    await test.step('オンボーディング質問の完了', async () => {
-      await completeOnboarding(page, {
-        question1: '学生',
-        question2: '週20時間未満',
-        question3: '500人以下',
-        question4: '扶養に入っている',
-        question5: '103万円以下に抑えたい'
-      })
-    })
-
-    await test.step('結果画面の表示確認', async () => {
-      // 結果ページに遷移していることを確認
-      await expect(page.url()).toMatch(/\/result/)
-      
-      // 扶養分類結果の表示
-      await expect(page.locator('text=103万円扶養')).toBeVisible()
-      
-      // 限度額の表示
-      await expect(page.locator('text=¥1,030,000')).toBeVisible()
-      
-      // 推奨事項の表示
-      await expect(page.locator('text=所得税の扶養控除対象')).toBeVisible()
-      
-      // ダッシュボードへのボタン
-      await expect(page.locator('text=ダッシュボードへ')).toBeVisible()
-    })
-
-    await test.step('ダッシュボードへの遷移', async () => {
-      await page.click('text=ダッシュボードへ')
-      
-      // ダッシュボードページに遷移
-      await expect(page.url()).toMatch(/\/dashboard/)
-      
-      // ダッシュボードタイトルの確認
-      await expect(page.locator('h1')).toContainText('ダッシュボード')
-      
-      // デモモード表示の確認
-      await expect(page.locator('text=デモモード')).toBeVisible()
-    })
-  })
-
-  test('106万円の壁対象ユーザーのオンボーディング', async ({ page }) => {
-    await completeOnboarding(page, {
-      question1: '学生',
-      question2: '週20時間以上',
-      question3: '500人以上',
-      question4: '扶養に入っている',
-      question5: '社会保険の扶養を維持したい'
-    })
-
-    // 106万円の壁の結果確認
-    await expect(page.locator('text=106万円（社保）')).toBeVisible()
-    await expect(page.locator('text=¥1,060,000')).toBeVisible()
-    await expect(page.locator('text=社会保険の扶養から外れる')).toBeVisible()
-  })
-
-  test('130万円の壁対象ユーザーのオンボーディング', async ({ page }) => {
-    await completeOnboarding(page, {
-      question1: '学生以外',
-      question2: '週20時間未満',
-      question3: '500人以下',
-      question4: '扶養に入っている',
-      question5: '社会保険の扶養を維持したい'
-    })
-
-    // 130万円の壁の結果確認
-    await expect(page.locator('text=130万円（社保）')).toBeVisible()
-    await expect(page.locator('text=¥1,300,000')).toBeVisible()
-  })
-
-  test('オンボーディング途中での戻る操作', async ({ page }) => {
+    // テスト前のセットアップ（認証等は環境に応じて設定）
     await page.goto('/')
-    await page.click('text=はじめる')
-
-    // 質問1 -> 質問2 -> 戻る
-    await page.click('text=学生')
-    await page.click('text=次へ')
-    await page.click('text=週20時間未満')
-    await page.click('text=次へ')
-    
-    // 戻るボタンで前の質問に戻る
-    await page.click('text=戻る')
-    await expect(page.locator('h2')).toContainText('質問 2')
-    
-    await page.click('text=戻る')
-    await expect(page.locator('h2')).toContainText('質問 1')
   })
 
-  test('無効な選択肢での進行阻止', async ({ page }) => {
-    await page.goto('/')
-    await page.click('text=はじめる')
+  test('学生ユーザーの標準フロー', async ({ page }) => {
+    await completeOnboarding(page, {
+      under_103_last_year: true,
+      using_family_insurance: true,
+      annual_income: '800000',
+      weekly_hours: '20'
+    })
 
-    // 選択肢を選ばずに次へを押そうとする
-    const nextButton = page.locator('text=次へ')
+    // ダッシュボードに遷移することを確認
+    await expect(page).toHaveURL('/dashboard')
     
-    // 選択なしでは次へボタンが無効化されている
-    await expect(nextButton).toBeDisabled()
+    // 扶養控除の上限が130万円に設定されることを確認
+    await expect(page.locator('text=130万円')).toBeVisible()
+  })
+
+  test('一般ユーザーの標準フロー', async ({ page }) => {
+    await completeOnboarding(page, {
+      under_103_last_year: false,
+      using_family_insurance: false,
+      annual_income: '1200000',
+      weekly_hours: '25'
+    })
+
+    // ダッシュボードに遷移することを確認
+    await expect(page).toHaveURL('/dashboard')
     
-    // 選択後は有効化される
-    await page.click('text=学生')
-    await expect(nextButton).toBeEnabled()
+    // 扶養控除の上限が103万円に設定されることを確認
+    await expect(page.locator('text=103万円')).toBeVisible()
+  })
+
+  test('106万円の壁に近いユーザー', async ({ page }) => {
+    await completeOnboarding(page, {
+      under_103_last_year: true,
+      using_family_insurance: true,
+      annual_income: '1000000',
+      weekly_hours: '22'
+    })
+
+    // ダッシュボードに遷移
+    await expect(page).toHaveURL('/dashboard')
+    
+    // 注意喚起が表示されることを確認
+    await expect(page.locator('text=注意が必要です')).toBeVisible()
+  })
+
+  test('戻るボタンの機能確認', async ({ page }) => {
+    await page.goto('/')
+    
+    // 質問1を回答
+    await page.click('text=はい、103万円以下でした')
+    
+    // 質問2で戻るボタンをクリック
+    await page.click('text=戻る')
+    
+    // 質問1に戻ることを確認
+    await expect(page.locator('h2')).toContainText('昨年のアルバイト収入は 103 万円以下でしたか？')
   })
 
   test('プログレスバーの動作確認', async ({ page }) => {
     await page.goto('/')
-    await page.click('text=はじめる')
-
-    // 初期状態のプログレス確認（1/5）
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '20')
-
-    // 質問2に進む
-    await page.click('text=学生')
-    await page.click('text=次へ')
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '40')
-
-    // 質問3に進む
-    await page.click('text=週20時間未満')
-    await page.click('text=次へ')
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '60')
-  })
-})
-
-test.describe('ダッシュボードの基本機能', () => {
-  test.beforeEach(async ({ page }) => {
-    // デモモードでダッシュボードに直接アクセス
-    await page.addInitScript(() => {
-      window.__demo_mode = true
-    })
-    await page.goto('/dashboard')
-  })
-
-  test('ダッシュボードの基本表示 @smoke', async ({ page }) => {
-    await test.step('基本要素の表示確認', async () => {
-      // ダッシュボードタイトル
-      await expect(page.locator('h1')).toContainText('ダッシュボード')
-      
-      // デモモード表示
-      await expect(page.locator('text=デモモード')).toBeVisible()
-      
-      // 扶養範囲ステータス
-      await expect(page.locator('text=扶養範囲ステータス')).toBeVisible()
-      
-      // 今年の収入進捗
-      await expect(page.locator('text=今年の収入進捗')).toBeVisible()
-      
-      // 残り可能収入
-      await expect(page.locator('text=残り可能収入')).toBeVisible()
-      
-      // 取引件数
-      await expect(page.locator('text=取引件数')).toBeVisible()
-    })
-
-    await test.step('進捗バーの表示確認', async () => {
-      // 進捗バーが表示されている
-      const progressBar = page.locator('[role="progressbar"]')
-      await expect(progressBar).toBeVisible()
-      
-      // パーセンテージが表示されている
-      await expect(page.locator('text=%')).toBeVisible()
-    })
-
-    await test.step('金額表示の確認', async () => {
-      // 通貨フォーマットの確認
-      const amounts = page.locator('text=/¥[\\d,]+/')
-      await expect(amounts.first()).toBeVisible()
-      
-      // 複数の金額が表示されている（現在収入、限度額、残り可能収入）
-      await expect(amounts).toHaveCount(3)
-    })
-  })
-
-  test('設定ボタンからの設定画面アクセス', async ({ page }) => {
-    // 設定ボタンをクリック
-    await page.click('[aria-label="設定"]')
     
-    // 設定モーダルが表示される
-    await expect(page.locator('text=設定')).toBeVisible()
-    await expect(page.locator('text=プロフィール設定')).toBeVisible()
-  })
-
-  test('CSVエクスポート機能', async ({ page }) => {
-    // エクスポートボタンの確認
-    await expect(page.locator('text=CSV出力')).toBeVisible()
+    // 初期状態（1/4）
+    await expect(page.locator('text=1/4')).toBeVisible()
     
-    // クリック可能な状態
-    await expect(page.locator('text=CSV出力')).toBeEnabled()
-  })
-
-  test('通知許可リクエスト', async ({ page }) => {
-    // 通知設定セクションの確認
-    await expect(page.locator('text=通知設定')).toBeVisible()
+    // 質問1を回答
+    await page.click('text=はい、103万円以下でした')
     
-    // 通知許可ボタンが表示されている
-    await expect(page.locator('text=通知を許可')).toBeVisible()
-  })
-
-  test('デモモードでの銀行連携無効化', async ({ page }) => {
-    // 銀行連携ボタンをクリック
-    await page.click('text=銀行連携')
+    // 2/4になることを確認
+    await expect(page.locator('text=2/4')).toBeVisible()
     
-    // デモモードでは利用できない旨のメッセージ
-    await expect(page.locator('text=デモモードでは銀行連携は利用できません')).toBeVisible()
+    // 質問2を回答
+    await page.click('text=はい、家族の保険証を使っています')
+    
+    // 3/4になることを確認
+    await expect(page.locator('text=3/4')).toBeVisible()
   })
-})
 
-test.describe('レスポンシブデザイン', () => {
-  test('モバイルビューでの表示確認', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 })
+  test('数値入力のバリデーション確認', async ({ page }) => {
     await page.goto('/')
     
-    // モバイル表示での要素確認
-    await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('text=はじめる')).toBeVisible()
+    // 質問1, 2を回答して質問3に到達
+    await page.click('text=はい、103万円以下でした')
+    await page.click('text=はい、家族の保険証を使っています')
     
-    // ボタンが押しやすいサイズで表示されている
-    const startButton = page.locator('text=はじめる')
-    const buttonBox = await startButton.boundingBox()
-    expect(buttonBox?.height).toBeGreaterThan(44) // iOS推奨の最小タップサイズ
+    // 無効な値（負の数）を入力
+    await page.fill('input[type="number"]', '-1000')
+    await page.click('text=次へ')
+    
+    // エラーメッセージが表示されることを確認
+    await expect(page.locator('text=0以上の値を入力してください')).toBeVisible()
+    
+    // 有効な値を入力
+    await page.fill('input[type="number"]', '800000')
+    await page.click('text=次へ')
+    
+    // 次の質問に進むことを確認
+    await expect(page.locator('h2')).toContainText('1週間に平均どれくらい働いていますか？')
   })
 
-  test('タブレットビューでの表示確認', async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 1024 })
-    await page.goto('/dashboard')
+  test('「わからない？」チャット機能', async ({ page }) => {
+    await page.goto('/')
     
-    // タブレットでの表示確認
-    await expect(page.locator('h1')).toContainText('ダッシュボード')
+    // 「わからない？」ボタンをクリック
+    await page.click('text=わからない？')
     
-    // レイアウトが適切に調整されている
-    const container = page.locator('.max-w-md')
-    await expect(container).toBeVisible()
+    // チャット画面が表示されることを確認
+    await expect(page.locator('text=扶養について詳しく教えます')).toBeVisible()
+  })
+
+  test('空の入力値での送信防止', async ({ page }) => {
+    await page.goto('/')
+    
+    // 質問1, 2を回答して質問3に到達
+    await page.click('text=はい、103万円以下でした')
+    await page.click('text=はい、家族の保険証を使っています')
+    
+    // 空の状態で次へボタンをクリック
+    const nextButton = page.locator('text=次へ')
+    await expect(nextButton).toBeDisabled()
+    
+    // 値を入力すると有効になることを確認
+    await page.fill('input[type="number"]', '800000')
+    await expect(nextButton).toBeEnabled()
   })
 })
 
-test.describe('アクセシビリティ', () => {
-  test('キーボードナビゲーション', async ({ page }) => {
-    await page.goto('/')
-    
-    // Tabキーでナビゲーション
-    await page.keyboard.press('Tab')
-    
-    // フォーカスが「はじめる」ボタンに移動
-    await expect(page.locator('text=はじめる')).toBeFocused()
-    
-    // Enterキーでボタンを押せる
-    await page.keyboard.press('Enter')
-    await expect(page.url()).toMatch(/\/onboarding/)
-  })
-
-  test('スクリーンリーダー用のaria-label', async ({ page }) => {
+test.describe('エラーハンドリング', () => {
+  test('認証エラー時の処理', async ({ page }) => {
+    // 認証なしでダッシュボードにアクセス
     await page.goto('/dashboard')
     
-    // 進捗バーにaria-labelが設定されている
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-label')
+    // ログインページまたはエラーメッセージが表示されることを確認
+    await expect(page.locator('text=ログインが必要です')).toBeVisible()
+  })
+
+  test('大きすぎる値の入力制限', async ({ page }) => {
+    await page.goto('/')
     
-    // 設定ボタンにaria-labelが設定されている
-    await expect(page.locator('[aria-label="設定"]')).toBeVisible()
+    // 質問1, 2を回答して質問3に到達
+    await page.click('text=はい、103万円以下でした')
+    await page.click('text=はい、家族の保険証を使っています')
+    
+    // 500万円を超える値を入力
+    await page.fill('input[type="number"]', '6000000')
+    await page.click('text=次へ')
+    
+    // エラーメッセージが表示されることを確認
+    await expect(page.locator('text=5000000以下の値を入力してください')).toBeVisible()
   })
 })
