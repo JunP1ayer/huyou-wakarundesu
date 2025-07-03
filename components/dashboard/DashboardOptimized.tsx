@@ -77,19 +77,27 @@ export default function DashboardOptimized() {
 
   // Threshold notification monitoring（memoized）
   const { showTestNotification } = useThresholdNotifier(
-    currentData?.stats.ytd_income || 0,
-    currentData?.profile.fuyou_line || 1030000
+    currentData?.stats?.ytd_income ?? 0,
+    currentData?.profile?.fuyou_line ?? 1030000
   )
 
   // 残り収入計算（memoized）
   const remainingCalculation = useMemo(() => {
     if (!currentData?.profile || !currentData?.stats) return null
     
-    return calculateRemaining(
+    const remainingAmount = calculateRemaining(
       currentData.stats.ytd_income,
-      currentData.profile.fuyou_line,
-      currentData.profile.hourly_wage
+      currentData.profile.fuyou_line
     )
+    
+    const remainingHours = currentData.profile.hourly_wage > 0 
+      ? remainingAmount / currentData.profile.hourly_wage 
+      : 0
+    
+    return {
+      remainingAmount,
+      remainingHours
+    }
   }, [currentData?.profile, currentData?.stats])
 
   // パフォーマンス表示（開発環境のみ）
@@ -183,12 +191,14 @@ export default function DashboardOptimized() {
       </div>
 
       {/* メインチャート（Dynamic Import） */}
-      <Suspense fallback={<ChartSkeleton />}>
-        <DashboardChart
-          stats={currentData.stats}
-          profile={currentData.profile}
-        />
-      </Suspense>
+      {currentData?.stats && currentData?.profile && (
+        <Suspense fallback={<ChartSkeleton />}>
+          <DashboardChart
+            stats={currentData.stats}
+            profile={currentData.profile}
+          />
+        </Suspense>
+      )}
 
       {/* 残り収入情報 */}
       {remainingCalculation && (
@@ -257,9 +267,7 @@ export default function DashboardOptimized() {
           <div className="font-mono">
             <div>サーバー処理: {performance.execution_time_ms}ms</div>
             <div>並列リクエスト: {performance.parallel_requests}件</div>
-            {performance.client_total_time_ms && (
-              <div>クライアント総時間: {performance.client_total_time_ms}ms</div>
-            )}
+            {/* クライアント時間の表示は一時的に無効化 */}
           </div>
         </div>
       )}
