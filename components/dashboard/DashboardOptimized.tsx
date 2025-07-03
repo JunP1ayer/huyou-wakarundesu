@@ -22,19 +22,17 @@ const DashboardChart = dynamic(
   }
 )
 
-const BankConnectionManager = dynamic(
-  () => import('./BankConnectionManager'),
-  { 
-    loading: () => <BankConnectionSkeleton />,
-    ssr: false
-  }
-)
+// TODO: BankConnectionManager コンポーネントを作成
+// const BankConnectionManager = dynamic(
+//   () => import('./BankConnectionManager'),
+//   { ssr: false }
+// )
 
-// 設定モーダルも遅延読み込み
-const SettingsModal = dynamic(
-  () => import('./SettingsModal'),
-  { ssr: false }
-)
+// TODO: SettingsModal コンポーネントを作成
+// const SettingsModal = dynamic(
+//   () => import('./SettingsModal'),
+//   { ssr: false }
+// )
 
 /**
  * 最適化されたダッシュボードコンポーネント
@@ -208,9 +206,9 @@ export default function DashboardOptimized() {
         </div>
       )}
 
-      {/* 銀行連携管理（Dynamic Import） */}
-      {!isDemoMode && (
-        <Suspense fallback={<BankConnectionSkeleton />}>
+      {/* TODO: 銀行連携管理（Dynamic Import） - コンポーネント作成後に有効化 */}
+      {/* {!isDemoMode && (
+        <Suspense fallback={<div>銀行連携を読み込み中...</div>}>
           <BankConnectionManager
             bankConnected={bankConnected}
             bankInfo={bankInfo}
@@ -218,7 +216,7 @@ export default function DashboardOptimized() {
             showToast={showToast}
           />
         </Suspense>
-      )}
+      )} */}
 
       {/* 通知設定 */}
       <RequestPermission />
@@ -238,8 +236,8 @@ export default function DashboardOptimized() {
         )}
       </div>
 
-      {/* 設定モーダル（Dynamic Import） */}
-      {showSettings && (
+      {/* TODO: 設定モーダル（Dynamic Import） - コンポーネント作成後に有効化 */}
+      {/* {showSettings && (
         <Suspense fallback={<div>設定を読み込み中...</div>}>
           <SettingsModal
             isOpen={showSettings}
@@ -248,7 +246,7 @@ export default function DashboardOptimized() {
             onUpdate={refetch}
           />
         </Suspense>
-      )}
+      )} */}
 
       {/* Toast Container */}
       <ToastContainer />
