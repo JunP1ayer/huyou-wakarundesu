@@ -261,5 +261,5 @@ export const config = {
   ],
   
   // Edge Runtime使用でパフォーマンス向上
-  runtime: 'edge',
+  runtime: 'experimental-edge',
 }
