@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';   // ビルド時の実行をスキップ
+export const runtime = 'nodejs';          // Edge ではなく Node.js ランタイムで動かす
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { GoogleAnalytics } from 'nextjs-google-analytics';
