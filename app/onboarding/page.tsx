@@ -23,9 +23,6 @@ interface OnboardingData {
   is_student?: boolean
 }
 
-interface OnboardingPageProps {
-  experimentId?: string
-}
 
 function OnboardingContent() {
   const { user, profile, refreshProfile, loading } = useAuth()
@@ -174,7 +171,7 @@ function OnboardingContent() {
     }
   }
 
-  const updateFormData = (field: keyof OnboardingData, value: any) => {
+  const updateFormData = (field: keyof OnboardingData, value: number | string | boolean | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null) // Clear error when user makes changes
   }

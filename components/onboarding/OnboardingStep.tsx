@@ -15,7 +15,7 @@ interface OnboardingData {
 interface OnboardingStepProps {
   step: number
   formData: OnboardingData
-  onUpdateData: (field: keyof OnboardingData, value: any) => void
+  onUpdateData: (field: keyof OnboardingData, value: number | string | boolean | undefined) => void
   experimentId?: string
 }
 

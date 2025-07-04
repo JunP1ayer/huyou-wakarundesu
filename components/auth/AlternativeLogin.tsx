@@ -44,7 +44,7 @@ export default function AlternativeLogin({ experimentId }: AlternativeLoginProps
       } else {
         setMessage(t('auth.login.linkSent'))
       }
-    } catch (err) {
+    } catch {
       setMessage(t('auth.login.linkFailed'))
     } finally {
       setIsLoading(false)

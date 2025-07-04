@@ -1,6 +1,16 @@
 // Privacy-first Google Analytics implementation
 // Based on Google's consent mode and ethical data collection principles
 
+// Type definitions for analytics
+type GtagEventParams = Record<string, string | number | boolean | undefined>
+type GtagCommand = 'consent' | 'config' | 'event' | 'js'
+
+// Layout shift entry interface (missing from TypeScript)
+interface LayoutShiftEntry extends PerformanceEntry {
+  value: number
+  hadRecentInput: boolean
+}
+
 
 // Initialize Google Analytics with consent mode
 export const initializeAnalytics = (measurementId: string) => {
@@ -8,8 +18,8 @@ export const initializeAnalytics = (measurementId: string) => {
 
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || []
-  window.gtag = function gtag(...args: any[]) {
-    window.dataLayer?.push(args)
+  window.gtag = function gtag(command: GtagCommand, ...args: unknown[]) {
+    window.dataLayer?.push([command, ...args])
   }
 
   // Set default consent mode (deny all until user consents)
@@ -59,7 +69,7 @@ export const hasAnalyticsConsent = (): boolean => {
 // Privacy-first event tracking
 export const trackEvent = (
   eventName: string, 
-  parameters: Record<string, any> = {},
+  parameters: GtagEventParams = {},
   requireConsent: boolean = true
 ) => {
   if (typeof window === 'undefined' || !window.gtag) return
@@ -81,7 +91,7 @@ export const trackEvent = (
 }
 
 // Remove potential PII from event parameters
-const sanitizeEventParameters = (params: Record<string, any>): Record<string, any> => {
+const sanitizeEventParameters = (params: GtagEventParams): GtagEventParams => {
   const sanitized = { ...params }
   
   // Remove common PII fields
@@ -135,7 +145,7 @@ export const trackWebVitals = () => {
     let clsValue = 0
     new PerformanceObserver((entryList) => {
       for (const entry of entryList.getEntries()) {
-        const clsEntry = entry as any // Layout shift entries have special properties
+        const clsEntry = entry as LayoutShiftEntry
         if (!clsEntry.hadRecentInput) {
           clsValue += clsEntry.value || 0
         }

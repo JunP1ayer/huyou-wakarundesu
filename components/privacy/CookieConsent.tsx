@@ -1,15 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import '@/lib/i18n'
 
 interface CookieConsentProps {
   experimentId?: string
 }
 
 export default function CookieConsent({ experimentId }: CookieConsentProps) {
-  const { t } = useTranslation('common')
   const [showConsent, setShowConsent] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 

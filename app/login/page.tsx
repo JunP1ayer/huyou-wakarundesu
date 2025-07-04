@@ -16,9 +16,6 @@ const AlternativeLogin = dynamic(() => import('@/components/auth/AlternativeLogi
   loading: () => <div className="h-8 bg-gray-100 rounded animate-pulse" />
 })
 
-interface LoginPageProps {
-  experimentId?: string
-}
 
 function LoginContent() {
   const { session, loading } = useAuth()
@@ -45,7 +42,7 @@ function LoginContent() {
       setError(t('auth.login.loginFailed'))
       router.replace('/login', undefined)
     }
-  }, [router])
+  }, [router, t])
 
   const handleGoogleLogin = async () => {
     setIsLoading(true)
@@ -76,7 +73,7 @@ function LoginContent() {
         setError(t('auth.login.loginFailed'))
         setIsLoading(false)
       }
-    } catch (err) {
+    } catch {
       setError(t('auth.login.loginFailed'))
       setIsLoading(false)
     }

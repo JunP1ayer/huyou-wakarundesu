@@ -3,6 +3,9 @@
 
 import { trackEvent } from './analytics'
 
+// Type for experiment variant configuration
+type VariantConfig = Record<string, string | number | boolean | undefined>
+
 export interface ExperimentConfig {
   id: string
   name: string
@@ -18,7 +21,7 @@ export interface ExperimentVariant {
   id: string
   name: string
   weight: number // Relative weight for traffic split
-  config: Record<string, any>
+  config: VariantConfig
 }
 
 export interface UserExperiment {
@@ -190,7 +193,7 @@ class ABTestingManager {
       if (stored) {
         const experiments = JSON.parse(stored)
         this.userExperiments = new Map(
-          Object.entries(experiments).map(([key, value]: [string, any]) => [
+          Object.entries(experiments as Record<string, UserExperiment & { assignedAt: string }>).map(([key, value]) => [
             key,
             {
               ...value,
