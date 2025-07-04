@@ -3,13 +3,14 @@ export const runtime = 'nodejs';          // Edge ではなく Node.js ランタ
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { GoogleAnalytics } from 'nextjs-google-analytics';
 import { GA_ID } from '@/lib/gtag';
 import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
+import CookieConsent from '@/components/privacy/CookieConsent';
 import { GlobalErrorBoundary } from '@/components/error/GlobalErrorHandler';
 import AuthProvider from '@/components/providers/AuthProvider';
 import Header from '@/components/navigation/Header';
 import { getServerSession } from '@/lib/supabase-server-session';
+import Script from 'next/script';
 import "./globals.css";
 import '@/lib/debugAuth';
 
@@ -72,7 +73,37 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {GA_ID && <GoogleAnalytics trackPageViews />}
+        {/* Privacy-first Google Analytics with consent mode */}
+        {GA_ID && (
+          <>
+            <Script
+              id="gtag-base"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('consent', 'default', {
+                    'analytics_storage': 'denied',
+                    'ad_storage': 'denied',
+                    'ad_user_data': 'denied',
+                    'ad_personalization': 'denied'
+                  });
+                  gtag('config', '${GA_ID}', {
+                    anonymize_ip: true,
+                    allow_google_signals: false,
+                    allow_ad_personalization_signals: false
+                  });
+                `,
+              }}
+            />
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            />
+          </>
+        )}
         <ServiceWorkerTracker />
         <GlobalErrorBoundary>
           <AuthProvider initialSession={initialSession}>
@@ -80,6 +111,7 @@ export default async function RootLayout({
             <main className="min-h-screen">
               {children}
             </main>
+            <CookieConsent />
           </AuthProvider>
         </GlobalErrorBoundary>
       </body>

@@ -1,15 +1,8 @@
 export const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    gtag: (...args: any[]) => void
-  }
-}
-
 // Track page views
 export const pageview = (path: string) => {
-  if (!GA_ID || typeof window === 'undefined') return
+  if (!GA_ID || typeof window === 'undefined' || !window.gtag) return
   
   window.gtag('config', GA_ID, {
     page_path: path,
@@ -19,7 +12,7 @@ export const pageview = (path: string) => {
 // Track custom events
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const event = (action: string, params: Record<string, any> = {}) => {
-  if (!GA_ID || typeof window === 'undefined') return
+  if (!GA_ID || typeof window === 'undefined' || !window.gtag) return
   
   window.gtag('event', action, {
     ...params,

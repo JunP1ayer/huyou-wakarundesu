@@ -1,86 +1,63 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { createSupabaseClient } from '@/lib/supabase'
-import { LogIn, Mail, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
+import dynamic from 'next/dynamic'
 
-export default function LoginPage() {
+// Lazy load components for performance
+const GoogleIcon = dynamic(() => import('@/components/icons/GoogleIcon'), { 
+  loading: () => <div className="w-5 h-5 rounded-full bg-gray-200 animate-pulse" />
+})
+const AlternativeLogin = dynamic(() => import('@/components/auth/AlternativeLogin'), { 
+  loading: () => <div className="h-8 bg-gray-100 rounded animate-pulse" />
+})
+
+interface LoginPageProps {
+  experimentId?: string
+}
+
+function LoginContent() {
   const { session, loading } = useAuth()
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const { t } = useTranslation('common')
   const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [showAlternative, setShowAlternative] = useState(false)
+  const [error, setError] = useState('')
   const supabase = createSupabaseClient()
+  const experimentId = 'default' // Default experiment ID
 
-  // Check for error parameters from URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const error = urlParams.get('error')
-    
-    if (error) {
-      switch (error) {
-        case 'auth_failed':
-          setMessage('認証に失敗しました。再度お試しください。')
-          break
-        case 'no_session':
-          setMessage('セッションが作成されませんでした。再度ログインしてください。')
-          break
-        case 'callback_failed':
-          setMessage('認証処理でエラーが発生しました。')
-          break
-        case 'no_supabase':
-          setMessage('認証システムが利用できません。')
-          break
-        default:
-          setMessage('エラーが発生しました。')
-      }
-      // Clear the error from URL
-      router.replace('/login', undefined)
-    }
-  }, [router])
-
-  // Already logged in? Redirect to dashboard
+  // Auto-redirect if already authenticated
   useEffect(() => {
     if (!loading && session) {
       router.replace('/dashboard')
     }
   }, [session, loading, router])
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
-
-    setIsLoading(true)
-    setMessage('')
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
-        }
-      })
-
-      if (error) {
-        setMessage(`エラー: ${error.message}`)
-      } else {
-        setMessage('マジックリンクを送信しました！メールボックスを確認してください。')
-      }
-    } catch (error) {
-      console.error('Login error:', error)
-      setMessage('ログインに失敗しました。再試行してください。')
-    } finally {
-      setIsLoading(false)
+  // Handle error states from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const errorCode = params.get('error')
+    if (errorCode) {
+      setError(t('auth.login.loginFailed'))
+      router.replace('/login', undefined)
     }
-  }
+  }, [router])
 
   const handleGoogleLogin = async () => {
-
     setIsLoading(true)
-    setMessage('')
+    setError('')
+    
+    // GA4 event
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'signup_start', {
+        method: 'google',
+        experiment_id: experimentId || 'default'
+      })
+    }
     
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -88,148 +65,127 @@ export default function LoginPage() {
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
-            access_type: 'offline',      // 長期アクセストークン取得
-            prompt: 'consent',           // 権限再確認
-            include_granted_scopes: 'true', // 段階的権限付与
+            access_type: 'offline',
+            prompt: 'select_account',
           },
-          scopes: 'openid email profile', // 必要最小限のスコープ
+          scopes: 'openid email profile'
         }
       })
 
       if (error) {
-        console.error('🔴 Google OAuth Error:', error)
-        
-        // 詳細なエラーハンドリング
-        if (error.message.includes('provider is not enabled')) {
-          setMessage('🔧 Google認証が設定されていません。OAUTH_ULTRA_SETUP.mdの手順に従って設定を完了してください。')
-        } else if (error.message.includes('redirect_uri_mismatch')) {
-          setMessage('🔧 リダイレクトURIの設定に問題があります。Google Cloud Consoleの設定を確認してください。')
-        } else if (error.message.includes('unauthorized_client')) {
-          setMessage('🔧 クライアントIDまたはシークレットが正しくありません。Supabase設定を確認してください。')
-        } else if (error.message.includes('access_denied')) {
-          setMessage('❌ Googleアクセスが拒否されました。再度お試しください。')
-        } else {
-          setMessage(`❌ Google ログインエラー: ${error.message}`)
-        }
+        setError(t('auth.login.loginFailed'))
         setIsLoading(false)
-      } else {
-        // 成功時のログ
-        console.log('✅ Google OAuth initiated successfully')
-        // リダイレクト中なのでloadingはfalseにしない
       }
-    } catch (error) {
-      console.error('🔴 Google login exception:', error)
-      setMessage('❌ Google ログインで予期しないエラーが発生しました。ページをリロードして再試行してください。')
+    } catch (err) {
+      setError(t('auth.login.loginFailed'))
       setIsLoading(false)
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">読み込み中...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center" role="status" aria-label={t('aria.loading')}>
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">扶養わかるんです</h1>
-          <h2 className="mt-6 text-2xl font-extrabold text-gray-900">
-            ログイン
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            扶養控除の計算とMoneytree連携による自動収入管理
+    <main className="min-h-screen flex items-center justify-center bg-white px-4" role="main">
+      <div className="w-full max-w-sm">
+        {/* Minimal header - Google style */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-normal text-gray-900 mb-2">
+            {t('app.name')}
+          </h1>
+          <p className="text-sm text-gray-600">
+            {t('app.tagline')}
           </p>
         </div>
 
-        {/* Login Form */}
-        <div className="mt-8 space-y-6">
-          {/* Google Login */}
+        {/* Primary action - Google login only */}
+        <div className="space-y-6">
           <button
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full h-12 flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
+            aria-label={t('auth.login.googleLogin')}
+            data-experiment-id={experimentId}
           >
-            <LogIn className="w-5 h-5 mr-2" />
-            {isLoading ? 'ログイン中...' : 'Googleでログイン'}
+            {!isLoading ? (
+              <>
+                <GoogleIcon />
+                <span className="ml-3">{t('auth.login.googleLogin')}</span>
+              </>
+            ) : (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-3" />
+                <span>{t('auth.login.loggingIn')}</span>
+              </>
+            )}
           </button>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">または</span>
-            </div>
-          </div>
-
-          {/* Email Login */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                メールアドレス
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="メールアドレス"
-              />
-            </div>
-            
-            <button
-              type="submit"
-              disabled={isLoading || !email}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          {/* Error message */}
+          {error && (
+            <div 
+              className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg text-center"
+              role="alert"
+              aria-live="polite"
             >
-              <Mail className="w-5 h-5 mr-2" />
-              {isLoading ? '送信中...' : 'マジックリンクを送信'}
-            </button>
-          </form>
-
-          {/* Message */}
-          {message && (
-            <div className={`text-sm text-center p-3 rounded-md ${
-              message.includes('エラー') || message.includes('失敗') 
-                ? 'bg-red-50 text-red-700 border border-red-200' 
-                : 'bg-green-50 text-green-700 border border-green-200'
-            }`}>
-              {message}
+              {error}
             </div>
           )}
 
-          {/* Back to Home */}
+          {/* Alternative options - Progressive disclosure */}
           <div className="text-center">
-            <Link 
-              href="/"
-              className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-500"
+            <button
+              onClick={() => setShowAlternative(!showAlternative)}
+              className="text-sm text-blue-600 hover:text-blue-700 focus:outline-none focus:underline"
+              aria-expanded={showAlternative}
+              aria-controls="alternative-login"
             >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              ホームに戻る
-            </Link>
+              {showAlternative ? t('auth.login.hideAlternative') : t('auth.login.alternativeLogin')}
+            </button>
           </div>
 
-          {/* Security Notice */}
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              ログインすると扶養控除の計算と収入管理機能をご利用いただけます。
-            </p>
-          </div>
+          {/* Alternative login methods - Lazy loaded */}
+          {showAlternative && (
+            <div id="alternative-login" className="pt-4 border-t border-gray-100">
+              <Suspense fallback={<div className="h-20 bg-gray-50 rounded animate-pulse" />}>
+                <AlternativeLogin experimentId={experimentId} />
+              </Suspense>
+            </div>
+          )}
+        </div>
+
+        {/* Privacy notice - Minimal */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500">
+            {t('auth.login.privacyNotice')}
+            <button className="text-blue-600 hover:underline focus:outline-none focus:underline">
+              {t('auth.login.termsOfService')}
+            </button>
+            {t('auth.login.agreeToTerms').includes('と') ? 'と' : ' and '}
+            <button className="text-blue-600 hover:underline focus:outline-none focus:underline">
+              {t('auth.login.privacyPolicy')}
+            </button>
+            {t('auth.login.agreeToTerms')}
+          </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
+  )
+}
+

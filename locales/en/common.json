@@ -1,0 +1,98 @@
+{
+  "app": {
+    "name": "Fuyou Wakarundesu",
+    "tagline": "Sign in to get started"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "googleLogin": "Sign in with Google",
+      "alternativeLogin": "Other sign-in methods",
+      "hideAlternative": "Hide other methods",
+      "emailLogin": "Sign in with email",
+      "emailPlaceholder": "Email address",
+      "sendLink": "Send login link",
+      "sending": "Sending...",
+      "loggingIn": "Signing in...",
+      "linkSent": "Login link sent to your email.",
+      "linkFailed": "Failed to send email.",
+      "loginFailed": "Could not sign in. Please try again.",
+      "checkEmail": "Check your email and click the link we sent you.",
+      "privacyNotice": "By continuing, you agree to our ",
+      "termsOfService": "Terms of Service",
+      "privacyPolicy": "Privacy Policy",
+      "agreeToTerms": "."
+    }
+  },
+  "onboarding": {
+    "step": "Step",
+    "remaining": "{{count}} more items",
+    "next": "Next",
+    "back": "Back",
+    "complete": "Complete",
+    "saving": "Saving...",
+    "skipSetup": "Set up later",
+    "step1": {
+      "title": "Basic Information",
+      "subtitle": "Tell us about yourself for personalized calculations",
+      "birthYear": "Birth Year",
+      "birthYearHelp": "We'll provide age-appropriate guidance",
+      "selectPlaceholder": "Please select",
+      "studentType": "Student Type",
+      "university": "University/College Student",
+      "vocational": "Vocational School Student",
+      "highSchool": "High School Student",
+      "graduate": "Graduate Student",
+      "other": "Other"
+    },
+    "step2": {
+      "title": "Tax Dependent Status",
+      "subtitle": "Are you claimed as a dependent by your parents?",
+      "legend": "Select your dependent status",
+      "full": "Yes, I am a dependent",
+      "fullDesc": "Parents claim me on their taxes",
+      "none": "No, I am not a dependent",
+      "noneDesc": "I pay my own taxes",
+      "partial": "I'm not sure",
+      "partialDesc": "I can check this later"
+    },
+    "step3": {
+      "title": "Health Insurance",
+      "subtitle": "What type of health insurance do you have?",
+      "legend": "Select your insurance type",
+      "none": "Parent's health insurance",
+      "noneDesc": "Family coverage",
+      "employee": "Employer health insurance",
+      "employeeDesc": "My own work insurance",
+      "national": "National health insurance",
+      "nationalDesc": "Independent coverage"
+    },
+    "step4": {
+      "title": "Income Goal",
+      "subtitle": "How much would you like to earn monthly?",
+      "label": "Monthly Income Goal (JPY)",
+      "placeholder": "80000",
+      "help": "We'll notify you when you approach this amount",
+      "reference": "Reference:",
+      "referenceText": "For dependent status, annual income should stay under ¥1.03M (about ¥86K/month)."
+    },
+    "validation": {
+      "allFieldsRequired": "Please fill in all required fields",
+      "pleaseSelect": "Please make a selection",
+      "amountRequired": "Please enter an amount",
+      "saveFailed": "Could not save. Please try again."
+    }
+  },
+  "aria": {
+    "loading": "Loading",
+    "backToStep": "Go back to previous step",
+    "nextStep": "Go to next step", 
+    "completeSetup": "Complete setup",
+    "skipToDashboard": "Skip setup and go to dashboard"
+  },
+  "common": {
+    "loading": "Loading",
+    "error": "An error occurred",
+    "invalidStep": "Invalid step"
+  }
+}

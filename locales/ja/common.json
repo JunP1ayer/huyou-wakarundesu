@@ -1,0 +1,98 @@
+{
+  "app": {
+    "name": "扶養わかるんです",
+    "tagline": "ログインして始める"
+  },
+  "auth": {
+    "login": {
+      "title": "ログイン",
+      "googleLogin": "Googleでログイン",
+      "alternativeLogin": "他の方法でログイン",
+      "hideAlternative": "他の方法を非表示",
+      "emailLogin": "メールアドレスでログイン",
+      "emailPlaceholder": "メールアドレス",
+      "sendLink": "ログインリンクを送信",
+      "sending": "送信中...",
+      "loggingIn": "ログイン中...",
+      "linkSent": "ログインリンクをメールで送信しました。",
+      "linkFailed": "メールの送信に失敗しました。",
+      "loginFailed": "ログインできませんでした。もう一度お試しください。",
+      "checkEmail": "メールボックスを確認して、送信されたリンクをクリックしてください。",
+      "privacyNotice": "続行すると、",
+      "termsOfService": "利用規約",
+      "privacyPolicy": "プライバシーポリシー",
+      "agreeToTerms": "に同意したことになります。"
+    }
+  },
+  "onboarding": {
+    "step": "ステップ",
+    "remaining": "あと{{count}}項目",
+    "next": "次へ",
+    "back": "戻る",
+    "complete": "完了",
+    "saving": "保存中...",
+    "skipSetup": "後で設定",
+    "step1": {
+      "title": "基本情報",
+      "subtitle": "あなたに合った計算をするために教えてください",
+      "birthYear": "生まれた年",
+      "birthYearHelp": "年齢に応じた適切な判定を行います",
+      "selectPlaceholder": "選択してください",
+      "studentType": "学生の種類",
+      "university": "大学生・短大生",
+      "vocational": "専門学生",
+      "highSchool": "高校生",
+      "graduate": "大学院生",
+      "other": "その他"
+    },
+    "step2": {
+      "title": "扶養について",
+      "subtitle": "親の扶養に入っていますか？",
+      "legend": "扶養状況を選択",
+      "full": "はい、扶養に入っています",
+      "fullDesc": "親が年末調整で申告している",
+      "none": "いいえ、入っていません",
+      "noneDesc": "自分で税金を払っている",
+      "partial": "わからない",
+      "partialDesc": "後で確認できます"
+    },
+    "step3": {
+      "title": "健康保険",
+      "subtitle": "どの健康保険に入っていますか？",
+      "legend": "健康保険の種類を選択",
+      "none": "親の健康保険",
+      "noneDesc": "家族として加入",
+      "employee": "バイト先の健康保険",
+      "employeeDesc": "自分で社会保険に加入",
+      "national": "国民健康保険",
+      "nationalDesc": "自分で国保に加入"
+    },
+    "step4": {
+      "title": "月収目標",
+      "subtitle": "毎月どれくらい稼ぎたいですか？",
+      "label": "月収目標（円）",
+      "placeholder": "80000",
+      "help": "この金額に近づいたらお知らせします",
+      "reference": "参考：",
+      "referenceText": "扶養内で働く場合、年収103万円以下（月平均約8.6万円）が目安です。"
+    },
+    "validation": {
+      "allFieldsRequired": "すべての項目を入力してください",
+      "pleaseSelect": "選択してください",
+      "amountRequired": "金額を入力してください",
+      "saveFailed": "保存できませんでした。もう一度お試しください。"
+    }
+  },
+  "aria": {
+    "loading": "読み込み中",
+    "backToStep": "前のステップに戻る",
+    "nextStep": "次のステップへ",
+    "completeSetup": "設定を完了",
+    "skipToDashboard": "設定をスキップしてダッシュボードへ"
+  },
+  "common": {
+    "loading": "読み込み中",
+    "error": "エラーが発生しました",
+    "invalidStep": "無効なステップです"
+  }
+}
