@@ -3,7 +3,6 @@
 
 // Type definitions for analytics
 type GtagEventParams = Record<string, string | number | boolean | undefined>
-type GtagCommand = 'consent' | 'config' | 'event' | 'js'
 
 // Layout shift entry interface (missing from TypeScript)
 interface LayoutShiftEntry extends PerformanceEntry {
