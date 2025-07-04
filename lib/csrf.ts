@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { randomBytes } from 'crypto'
 
 // CSRF設定
 const CSRF_CONFIG = {
@@ -30,10 +31,9 @@ export function generateCSRFToken(): string {
   
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     crypto.getRandomValues(array)
-  } else if (typeof require !== 'undefined') {
+  } else if (typeof randomBytes !== 'undefined') {
     // Node.js環境（SSR時）
-    const nodeCrypto = require('crypto')
-    const buffer = nodeCrypto.randomBytes(CSRF_CONFIG.tokenLength)
+    const buffer = randomBytes(CSRF_CONFIG.tokenLength)
     array.set(buffer)
   } else {
     // フォールバック（推奨されない）

@@ -79,7 +79,19 @@ export async function GET() {
     ])
 
     // レスポンス構築
-    const response: any = {
+    const response: {
+      user_id: string
+      timestamp: string
+      performance: {
+        execution_time_ms: number
+        parallel_requests: number
+      }
+      profile?: unknown
+      stats?: unknown
+      bank_connected?: boolean
+      bank_info?: unknown
+      errors?: Record<string, string>
+    } = {
       user_id: user.id,
       timestamp: new Date().toISOString(),
       performance: {
@@ -95,7 +107,7 @@ export async function GET() {
       response.profile = null
       response.errors = response.errors || {}
       response.errors.profile = profileResult.status === 'fulfilled' 
-        ? profileResult.value.error?.message 
+        ? profileResult.value.error?.message || 'Profile fetch failed'
         : 'Profile fetch failed'
     }
 
@@ -139,7 +151,7 @@ export async function GET() {
         response.stats = null
         response.errors = response.errors || {}
         response.errors.stats = statsResult.status === 'fulfilled'
-          ? statsResult.value.error?.message
+          ? statsResult.value.error?.message || 'Stats fetch failed'
           : 'Stats fetch failed'
       }
     }
@@ -165,7 +177,7 @@ export async function GET() {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('🔴 Dashboard batch API error:', error)
     
     return NextResponse.json({

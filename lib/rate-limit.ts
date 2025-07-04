@@ -99,6 +99,18 @@ class MemoryRateLimiter {
     }
     this.store.clear()
   }
+
+  getStoreEntries(): Array<[string, RateLimitEntry]> {
+    return Array.from(this.store.entries())
+  }
+
+  deleteFromStore(key: string): boolean {
+    return this.store.delete(key)
+  }
+
+  clearStore(): void {
+    this.store.clear()
+  }
 }
 
 // グローバルレートリミッターインスタンス
@@ -244,10 +256,10 @@ export function getRateLimitStats(): {
   memoryUsage: string
   topLimitedIPs: Array<{ ip: string, hits: number }>
 } {
-  const entries = Array.from((globalRateLimiter as any).store.entries())
+  const entries = globalRateLimiter.getStoreEntries()
   
   // 上位制限対象を取得
-  const topLimited = (entries as Array<[string, RateLimitEntry]>)
+  const topLimited = entries
     .map(([key, entry]) => ({
       ip: key,
       hits: entry.totalHits
@@ -267,7 +279,7 @@ export function getRateLimitStats(): {
  */
 export function resetRateLimit(identifier: string): boolean {
   const key = `rate_limit:${identifier}`;
-  return (globalRateLimiter as any).store.delete(key)
+  return globalRateLimiter.deleteFromStore(key)
 }
 
 /**
@@ -275,12 +287,12 @@ export function resetRateLimit(identifier: string): boolean {
  */
 export function clearAllRateLimits(): void {
   if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-    (globalRateLimiter as any).store.clear()
+    globalRateLimiter.clearStore()
   }
 }
 
 // プロセス終了時のクリーンアップ（Node.js環境のみ）
-if (typeof process !== 'undefined' && process.on && typeof process.on === 'function') {
+if (typeof process !== 'undefined' && process.on && typeof process.on === 'function' && process.env.NEXT_RUNTIME !== 'edge') {
   try {
     process.on('exit', () => {
       globalRateLimiter.destroy()

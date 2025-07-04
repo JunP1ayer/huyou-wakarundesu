@@ -90,15 +90,15 @@ export async function GET() {
             validation.oauth.googleProvider.status = 'error'
             validation.oauth.googleProvider.error = `Unexpected status: ${oauthTest.status}`
           }
-        } catch (oauthError: any) {
+        } catch (oauthError: unknown) {
           validation.oauth.googleProvider.status = 'error'
-          validation.oauth.googleProvider.error = oauthError.message
+          validation.oauth.googleProvider.error = oauthError instanceof Error ? oauthError.message : 'Unknown error'
           validation.recommendations.push('OAuth設定の確認が必要です')
         }
 
-      } catch (supabaseError: any) {
+      } catch (supabaseError: unknown) {
         validation.connectivity.supabaseConnection = false
-        validation.recommendations.push('Supabase設定エラー: ' + supabaseError.message)
+        validation.recommendations.push('Supabase設定エラー: ' + (supabaseError instanceof Error ? supabaseError.message : 'Unknown error'))
       }
     } else {
       validation.recommendations.push('環境変数NEXT_PUBLIC_SUPABASE_URLとNEXT_PUBLIC_SUPABASE_ANON_KEYを正しく設定してください')
@@ -138,13 +138,13 @@ export async function GET() {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('🔴 OAuth validation error:', error)
     
     return NextResponse.json({
       status: 'error',
       timestamp: new Date().toISOString(),
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       recommendations: [
         '設定検証中にエラーが発生しました',
         'OAUTH_ULTRA_SETUP.md の手順を確認してください'
@@ -191,10 +191,10 @@ export async function POST(request: NextRequest) {
           }
         })
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         return NextResponse.json({
           success: false,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
     }
@@ -204,10 +204,10 @@ export async function POST(request: NextRequest) {
       error: 'Unknown test type'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 400 })
   }
 }

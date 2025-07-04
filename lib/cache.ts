@@ -19,7 +19,7 @@ interface CacheStats {
 }
 
 class MemoryCache {
-  private cache = new Map<string, CacheEntry<any>>()
+  private cache = new Map<string, CacheEntry<unknown>>()
   private stats = {
     hits: 0,
     misses: 0,
@@ -178,7 +178,7 @@ export const AppCache = {
     return globalCache.get(CacheKeys.dashboardBatch(userId))
   },
 
-  async setDashboardData(userId: string, data: any, ttlSeconds: number = 300) {
+  async setDashboardData(userId: string, data: unknown, ttlSeconds: number = 300) {
     globalCache.set(CacheKeys.dashboardBatch(userId), data, ttlSeconds)
   },
 
@@ -189,7 +189,7 @@ export const AppCache = {
     return globalCache.get(CacheKeys.userProfile(userId))
   },
 
-  async setUserProfile(userId: string, profile: any, ttlSeconds: number = 600) {
+  async setUserProfile(userId: string, profile: unknown, ttlSeconds: number = 600) {
     globalCache.set(CacheKeys.userProfile(userId), profile, ttlSeconds)
   },
 
@@ -200,7 +200,7 @@ export const AppCache = {
     return globalCache.get(CacheKeys.userStats(userId))
   },
 
-  async setUserStats(userId: string, stats: any, ttlSeconds: number = 180) {
+  async setUserStats(userId: string, stats: unknown, ttlSeconds: number = 180) {
     globalCache.set(CacheKeys.userStats(userId), stats, ttlSeconds)
   },
 
@@ -211,7 +211,7 @@ export const AppCache = {
     return globalCache.get(CacheKeys.bankConnection(userId))
   },
 
-  async setBankConnection(userId: string, connection: any, ttlSeconds: number = 300) {
+  async setBankConnection(userId: string, connection: unknown, ttlSeconds: number = 300) {
     globalCache.set(CacheKeys.bankConnection(userId), connection, ttlSeconds)
   },
 
@@ -247,7 +247,7 @@ export const AppCache = {
 /**
  * キャッシュデコレータ - 関数結果をキャッシュ
  */
-export function withCache<T extends (...args: any[]) => Promise<any>>(
+export function withCache<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   keyGenerator: (...args: Parameters<T>) => string,
   ttlSeconds: number = 300

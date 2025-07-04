@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 
 // Helper function to check if a value is a valid (non-placeholder) environment variable
 const isValidEnvValue = (value: string | undefined): boolean => {
@@ -42,7 +42,7 @@ export async function getServerSession(): Promise<Session | null> {
         app_metadata: {},
         user_metadata: {},
         created_at: new Date().toISOString(),
-      } as any,
+      } as User,
     } as Session
   }
   
