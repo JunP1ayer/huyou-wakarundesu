@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSupabase } from '@/components/providers/SupabaseProvider'
+import { useAuth } from '@/components/providers/AuthProvider'
 import LoginPrompt from './LoginPrompt'
 
 interface AuthGuardProps {
@@ -18,7 +18,7 @@ export default function AuthGuard({
   fallback,
   requireAuth = true
 }: AuthGuardProps) {
-  const { session, loading } = useSupabase()
+  const { session, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function AuthGuard({
 
 // Convenience hook for auth status
 export function useAuthGuard() {
-  const { session, loading, user } = useSupabase()
+  const { session, loading, user } = useAuth()
   
   return {
     isAuthenticated: !!session,

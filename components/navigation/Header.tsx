@@ -2,18 +2,18 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useSupabase } from '@/components/providers/SupabaseProvider'
+import { useAuth } from '@/components/providers/AuthProvider'
+import { createSupabaseClient } from '@/lib/supabase'
 import { LogIn, LogOut, User, Settings, Home } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Header() {
-  const { user, session, supabase } = useSupabase()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const supabase = createSupabaseClient()
 
   const handleLogout = async () => {
-    if (!supabase) return
-    
     setIsLoggingOut(true)
     try {
       await supabase.auth.signOut()
@@ -81,10 +81,10 @@ export default function Header() {
                 </Link>
                 
                 <Link 
-                  href="/dashboard"
+                  href="/login"
                   className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  デモを試す
+                  始める
                 </Link>
               </>
             )}

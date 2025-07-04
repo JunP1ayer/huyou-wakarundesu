@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSupabase } from '@/components/providers/SupabaseProvider'
+import { useAuth } from '@/components/providers/AuthProvider'
+import { createSupabaseClient } from '@/lib/supabase'
 import { LogIn, Mail, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function LoginPage() {
-  const { supabase, session, loading } = useSupabase()
+  const { session, loading } = useAuth()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const supabase = createSupabaseClient()
 
   // Check for error parameters from URL
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase || !email) return
+    if (!email) return
 
     setIsLoading(true)
     setMessage('')
@@ -76,10 +78,6 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    if (!supabase) {
-      setMessage('デモモードです。認証が設定されていません。')
-      return
-    }
 
     setIsLoading(true)
     setMessage('')
@@ -224,11 +222,10 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Demo Mode Notice */}
+          {/* Security Notice */}
           <div className="text-center">
             <p className="text-xs text-gray-500">
-              デモモードでは認証なしでお試しいただけます。<br />
-              本格利用にはログインが必要です。
+              ログインすると扶養控除の計算と収入管理機能をご利用いただけます。
             </p>
           </div>
         </div>

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSupabase } from '@/components/providers/SupabaseProvider'
+import { createSupabaseClient } from '@/lib/supabase'
 import { CheckCircle, XCircle, Loader } from 'lucide-react'
 
 type AuthState = 'processing' | 'success' | 'error' | 'timeout'
@@ -10,19 +10,11 @@ type AuthState = 'processing' | 'success' | 'error' | 'timeout'
 function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { supabase } = useSupabase()
   const [authState, setAuthState] = useState<AuthState>('processing')
   const [message, setMessage] = useState('認証処理を開始しています...')
+  const supabase = createSupabaseClient()
 
-  useEffect(() => {
-
-    const handleAuthCallback = async () => {
-      if (!supabase) {
-        setAuthState('error')
-        setMessage('認証システムが利用できません。')
-        setTimeout(() => router.replace('/login?error=no_supabase'), 3000)
-        return
-      }
+  const handleAuthCallback = useCallback(async () => {
 
       try {
         setMessage('認証情報を確認しています...')
@@ -96,8 +88,9 @@ function AuthCallbackContent() {
         setMessage('認証処理でエラーが発生しました。')
         setTimeout(() => router.replace('/login?error=callback_failed'), 4000)
       }
-    }
+  }, [router, searchParams, supabase])
 
+  useEffect(() => {
     // タイムアウト設定（30秒）
     const timeoutId = setTimeout(() => {
       if (authState === 'processing') {
@@ -112,7 +105,7 @@ function AuthCallbackContent() {
     return () => {
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [supabase, router, searchParams, authState])
+  }, [handleAuthCallback, authState, router])
 
   const getIcon = () => {
     switch (authState) {
