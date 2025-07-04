@@ -9,10 +9,11 @@ import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 interface OnboardingData {
-  under_103_last_year: boolean | null  // Q1: 昨年収入103万円以下か
-  using_family_insurance: boolean | null  // Q2: 家族の健康保険使用か
-  annual_income: number | null  // Q3: 年間収入合計
-  weekly_hours: number | null  // Q4: 週労働時間
+  is_student: boolean | null  // Q1: 学生かどうか
+  under_103_last_year: boolean | null  // Q2: 昨年収入103万円以下か
+  using_family_insurance: boolean | null  // Q3: 家族の健康保険使用か
+  annual_income: number | null  // Q4: 年間収入合計
+  weekly_hours: number | null  // Q5: 週労働時間
   // Legacy fields for compatibility  
   birth_year?: number | null
   student_type?: string | null
@@ -39,9 +40,21 @@ interface QuestionConfig {
 
 const questions: QuestionConfig[] = [
   {
-    id: 'under_103_last_year',
+    id: 'is_student',
     step: 1,
-    title: 'Step 1/4 収入の確認',
+    title: 'Step 1/5 学生確認',
+    question: 'あなたは現在学生ですか？',
+    description: '※適切な扶養判定のため、学生状況をお聞かせください',
+    type: 'boolean' as const,
+    options: [
+      { value: true, label: 'はい、学生です' },
+      { value: false, label: 'いいえ、学生ではありません' }
+    ]
+  },
+  {
+    id: 'under_103_last_year',
+    step: 2,
+    title: 'Step 2/5 収入の確認',
     question: '昨年のアルバイト収入は 103 万円以下でしたか？',
     description: '※扶養控除の判定に必要な情報です',
     type: 'boolean' as const,
@@ -52,8 +65,8 @@ const questions: QuestionConfig[] = [
   },
   {
     id: 'using_family_insurance',
-    step: 2,
-    title: 'Step 2/4 健康保険の確認',
+    step: 3,
+    title: 'Step 3/5 健康保険の確認',
     question: '親やご家族の健康保険証を使っていますか？',
     description: '※社会保険の扶養判定に必要な情報です',
     type: 'boolean' as const,
@@ -64,8 +77,8 @@ const questions: QuestionConfig[] = [
   },
   {
     id: 'annual_income',
-    step: 3,
-    title: 'Step 3/4 年間収入の入力',
+    step: 4,
+    title: 'Step 4/5 年間収入の入力',
     question: '1年間（4月〜翌3月）の収入合計を入力してください',
     description: '※正確な扶養判定のため、見込み額を入力してください',
     type: 'number' as const,
@@ -76,8 +89,8 @@ const questions: QuestionConfig[] = [
   },
   {
     id: 'weekly_hours',
-    step: 4,
-    title: 'Step 4/4 労働時間の入力',
+    step: 5,
+    title: 'Step 5/5 労働時間の入力',
     question: '1週間に平均どれくらい働いていますか？',
     description: '※社会保険加入要件の判定に使用します',
     type: 'number' as const,
@@ -91,6 +104,7 @@ const questions: QuestionConfig[] = [
 export default function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<OnboardingData>({
+    is_student: null,
     under_103_last_year: null,
     using_family_insurance: null,
     annual_income: null,
@@ -184,12 +198,12 @@ export default function OnboardingWizard() {
         user_id: user.id,
         // Required fields for isProfileComplete()
         birth_year: currentYear - 20, // Assume typical student age
-        student_type: finalData.under_103_last_year ? 'university' : 'other',
+        student_type: finalData.is_student ? 'university' : 'other',
         support_type: finalData.using_family_insurance ? 'full' : 'none',
         insurance: finalData.using_family_insurance ? 'none' : 'national', // 'none' means family insurance
         monthly_income_target: finalData.annual_income ? Math.round(finalData.annual_income / 12) : 85000,
         // Legacy fields
-        is_student: finalData.under_103_last_year === true,
+        is_student: finalData.is_student === true,
         weekly_hours: finalData.weekly_hours ?? 20,
         fuyou_line: calculateFuyouLine(finalData),
         hourly_wage: finalData.annual_income && finalData.weekly_hours 
@@ -236,8 +250,8 @@ export default function OnboardingWizard() {
   }
 
   const calculateFuyouLine = (data: OnboardingData): number => {
-    // Simple logic: if family insurance and under 103万 last year, likely student with 130万 line
-    if (data.using_family_insurance && data.under_103_last_year) {
+    // Simple logic: if student and using family insurance, use 130万 line
+    if (data.is_student && data.using_family_insurance) {
       return 1300000 // 130万円
     }
     return 1030000 // 103万円 (default)
@@ -266,7 +280,7 @@ export default function OnboardingWizard() {
     return (
       <UnknownFuyouChat 
         isOpen={isOpen}
-        isStudent={data.under_103_last_year === true}
+        isStudent={data.is_student === true}
         onClose={closeChat}
         onComplete={handleChatComplete}
       />
@@ -370,7 +384,7 @@ export default function OnboardingWizard() {
           </button>
 
           <button
-            onClick={() => openChat(data.under_103_last_year === true)}
+            onClick={() => openChat(data.is_student === true)}
             className="px-4 py-2 text-indigo-600 hover:text-indigo-800 font-medium min-h-[44px]"
           >
             わからない？
