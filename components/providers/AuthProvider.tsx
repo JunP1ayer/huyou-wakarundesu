@@ -6,6 +6,9 @@ import { User, Session } from '@supabase/supabase-js'
 import { createSupabaseClient } from '@/lib/supabase'
 import { UserProfile } from '@/lib/supabase'
 import { isProfileComplete } from '@/lib/profile-validation'
+import { guardCurrentRoute } from '@/lib/route-guardian'
+import { getUltraResilientAuthState } from '@/lib/auth-resilience'
+import { logAuthEvent, logAuthError } from '@/lib/auth-monitor'
 
 interface AuthContextType {
   user: User | null
@@ -22,7 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const PUBLIC_ROUTES = ['/login', '/auth/callback']
 
 // Routes that require authentication but not profile completion
-const AUTH_ONLY_ROUTES = ['/onboarding']
+const AUTH_ONLY_ROUTES = ['/']
 
 interface AuthProviderProps {
   children: React.ReactNode
@@ -52,6 +55,7 @@ export default function AuthProvider({
     if (!supabase) return null
     
     try {
+      console.log('🔍 Fetching profile for user:', userId)
       const { data, error } = await supabase
         .from('user_profile')
         .select('*')
@@ -59,9 +63,25 @@ export default function AuthProvider({
         .single()
 
       if (error) {
-        console.error('🔴 Profile fetch error:', error)
+        console.error('🔴 Profile fetch error:', error.message, error.code)
+        if (error.code === 'PGRST116') {
+          console.log('📝 No profile found - will be created by database trigger')
+        }
         return null
       }
+
+      console.log('✅ Profile fetched:', {
+        userId: data.user_id,
+        profileCompleted: data.profile_completed,
+        onboardingStep: data.onboarding_step,
+        hasRequiredFields: {
+          birthYear: !!data.birth_year,
+          studentType: !!data.student_type,
+          supportType: data.support_type !== 'unknown',
+          insurance: data.insurance !== 'unknown',
+          monthlyIncomeTarget: !!data.monthly_income_target
+        }
+      })
 
       return data
     } catch (error) {
@@ -74,56 +94,55 @@ export default function AuthProvider({
   const refreshProfile = async () => {
     if (!user) return
 
+    console.log('🔄 Refreshing profile for user:', user.id)
     const profileData = await fetchProfile(user.id)
+    const complete = isProfileComplete(profileData)
+    
+    console.log('📊 Profile completion check:', {
+      profileExists: !!profileData,
+      isComplete: complete,
+      previouslyComplete: profileComplete
+    })
+    
     setProfile(profileData)
-    setProfileComplete(isProfileComplete(profileData))
+    setProfileComplete(complete)
   }
 
-  // Handle route protection and redirects
-  const handleRouteProtection = useCallback(() => {
-    const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
-    const isAuthOnlyRoute = AUTH_ONLY_ROUTES.includes(pathname)
+  // Handle route protection and redirects using Ultra Route Guardian
+  const handleRouteProtection = useCallback(async () => {
+    console.log('🛡️ ULTRA: Starting route protection', { pathname, loading })
     
     // If loading, don't redirect yet
-    if (loading) return
+    if (loading) {
+      console.log('⏳ ULTRA: Skipping redirect - still loading')
+      return
+    }
 
-    // Not authenticated
-    if (!user || !session) {
-      if (!isPublicRoute) {
-        console.log('🔄 Redirecting to login - no authentication')
+    try {
+      // Use ultra-resilient route guardian
+      const guardResult = await guardCurrentRoute(pathname)
+      
+      console.log('🛡️ ULTRA: Route guard result', guardResult)
+      
+      if (!guardResult.allowed && guardResult.redirectTo) {
+        console.log(`🔄 ULTRA: Redirecting to ${guardResult.redirectTo}, reason: ${guardResult.reason}`)
+        router.push(guardResult.redirectTo)
+      }
+      
+    } catch (error) {
+      console.error('🔴 ULTRA: Route protection error', error)
+      
+      // Emergency fallback - try original logic
+      const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
+      
+      if (!user && !isPublicRoute) {
+        console.log('🚨 ULTRA: Emergency redirect to login')
         router.push('/login')
       }
-      return
     }
+  }, [pathname, loading, router, user])
 
-    // Authenticated but profile incomplete
-    if (!profileComplete && !isAuthOnlyRoute && !isPublicRoute) {
-      console.log('🔄 Redirecting to onboarding - profile incomplete')
-      router.push('/onboarding')
-      return
-    }
-
-    // Authenticated with complete profile but on onboarding page
-    if (profileComplete && pathname === '/onboarding') {
-      console.log('🔄 Redirecting to dashboard - profile complete')
-      router.push('/dashboard')
-      return
-    }
-
-    // Authenticated user on login page
-    if (user && isPublicRoute && pathname === '/login') {
-      if (profileComplete) {
-        console.log('🔄 Redirecting to dashboard - already authenticated')
-        router.push('/dashboard')
-      } else {
-        console.log('🔄 Redirecting to onboarding - authentication complete')
-        router.push('/onboarding')
-      }
-      return
-    }
-  }, [pathname, loading, user, session, profileComplete, router])
-
-  // Initialize authentication state
+  // Initialize authentication state with ultra-resilience
   useEffect(() => {
     if (!supabase) {
       setLoading(false)
@@ -132,22 +151,58 @@ export default function AuthProvider({
 
     const initializeAuth = async () => {
       try {
-        // Get current session if not provided
-        if (!initialSession) {
-          const { data: { session: currentSession } } = await supabase.auth.getSession()
-          setSession(currentSession)
-          setUser(currentSession?.user || null)
-        }
-
-        // Fetch profile if user exists
-        const currentUser = initialSession?.user || user
-        if (currentUser) {
-          const profileData = await fetchProfile(currentUser.id)
-          setProfile(profileData)
-          setProfileComplete(isProfileComplete(profileData))
-        }
+        logAuthEvent('auth_init', { pathname }, pathname)
+        console.log('🚀 ULTRA: Initializing authentication with resilience')
+        
+        // Use ultra-resilient auth state verification
+        const authState = await getUltraResilientAuthState()
+        
+        console.log('📊 ULTRA: Auth state initialized', {
+          hasUser: !!authState.user,
+          hasSession: !!authState.session,
+          hasProfile: !!authState.profile,
+          profileComplete: authState.profileComplete
+        })
+        
+        logAuthEvent('auth_state_loaded', {
+          hasUser: !!authState.user,
+          hasSession: !!authState.session,
+          hasProfile: !!authState.profile,
+          profileComplete: authState.profileComplete,
+          userId: authState.user?.id
+        }, pathname)
+        
+        setUser(authState.user)
+        setSession(authState.session)
+        setProfile(authState.profile)
+        setProfileComplete(authState.profileComplete)
+        
       } catch (error) {
-        console.error('🔴 Auth initialization failed:', error)
+        logAuthError('auth_init_failed', error, { pathname }, pathname)
+        console.error('🔴 ULTRA: Auth initialization failed:', error)
+        
+        // Fallback to original logic
+        try {
+          logAuthEvent('fallback_triggered', { reason: 'auth_init_failed' }, pathname)
+          
+          if (!initialSession) {
+            const { data: { session: currentSession } } = await supabase.auth.getSession()
+            setSession(currentSession)
+            setUser(currentSession?.user || null)
+          }
+
+          const currentUser = initialSession?.user || user
+          if (currentUser) {
+            const profileData = await fetchProfile(currentUser.id)
+            setProfile(profileData)
+            setProfileComplete(isProfileComplete(profileData))
+          }
+          
+          logAuthEvent('fallback_success', { hasUser: !!currentUser }, pathname)
+        } catch (fallbackError) {
+          logAuthError('fallback_failed', fallbackError, { pathname }, pathname)
+          console.error('🔴 ULTRA: Fallback auth initialization failed:', fallbackError)
+        }
       } finally {
         setLoading(false)
       }
@@ -158,7 +213,7 @@ export default function AuthProvider({
     } else {
       setLoading(false)
     }
-  }, [initialSession, supabase, user, fetchProfile])
+  }, [initialSession, supabase, user, fetchProfile, pathname])
 
   // Listen for auth state changes
   useEffect(() => {

@@ -30,12 +30,20 @@ export default function DashboardPage() {
     )
   }
 
+  // Redirect to onboarding if profile is incomplete
+  // Note: This is a fallback in case AuthProvider redirect doesn't work
   if (!profileComplete) {
+    // Use window location for immediate redirect without waiting for React router
+    if (typeof window !== 'undefined') {
+      console.log('🔄 Dashboard: Redirecting to home onboarding - profile incomplete')
+      window.location.href = '/'
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">プロフィール設定が必要です</h1>
-          <p className="text-gray-600">先に初期設定を完了してください。</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">初期設定に移動しています...</p>
         </div>
       </div>
     )

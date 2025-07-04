@@ -68,13 +68,37 @@ function AuthCallbackContent() {
           console.log('✅ Authentication successful:', {
             email: session.user.email,
             provider: session.user.app_metadata?.provider,
-            userId: session.user.id
+            userId: session.user.id,
+            accessToken: session.access_token ? 'present' : 'missing',
+            refreshToken: session.refresh_token ? 'present' : 'missing',
+            expiresAt: session.expires_at
           })
+          
+          // Check if user profile will be created/exists
+          try {
+            console.log('🔍 Checking user profile creation...')
+            const { data: profile, error: profileError } = await supabase
+              .from('user_profile')
+              .select('user_id, profile_completed, onboarding_step')
+              .eq('user_id', session.user.id)
+              .single()
+            
+            if (profile) {
+              console.log('👤 User profile found:', profile)
+            } else if (profileError?.code === 'PGRST116') {
+              console.log('🆕 New user - profile will be created by trigger')
+            } else if (profileError) {
+              console.error('❌ Profile check error:', profileError)
+            }
+          } catch (profileCheckError) {
+            console.error('❌ Profile check failed:', profileCheckError)
+          }
           
           setAuthState('success')
           setMessage(`${session.user.email} でログインしました！`)
           
-          // ダッシュボードにリダイレクト
+          // Redirect to dashboard (AuthProvider will handle further routing)
+          console.log('🔄 Redirecting to dashboard for auth flow processing')
           setTimeout(() => router.replace('/dashboard'), 2000)
         } else {
           console.log('❌ No session found after callback attempts')

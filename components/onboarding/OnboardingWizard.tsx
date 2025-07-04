@@ -13,6 +13,12 @@ interface OnboardingData {
   using_family_insurance: boolean | null  // Q2: 家族の健康保険使用か
   annual_income: number | null  // Q3: 年間収入合計
   weekly_hours: number | null  // Q4: 週労働時間
+  // Legacy fields for compatibility  
+  birth_year?: number | null
+  student_type?: string | null
+  support_type?: string | null
+  insurance?: string | null
+  monthly_income_target?: number | null
   fuyou_category?: string | null
   fuyou_limit?: number | null
 }
@@ -172,15 +178,26 @@ export default function OnboardingWizard() {
 
       const { supabase, user } = authClient
 
-      // Convert new data format to legacy profile format
+      // Convert simplified onboarding data to complete profile format required by isProfileComplete()
+      const currentYear = new Date().getFullYear()
       const profileData = {
         user_id: user.id,
-        is_student: finalData.under_103_last_year === true, // Assume student if under 103万 last year
-        weekly_hours: finalData.weekly_hours ?? 0,
+        // Required fields for isProfileComplete()
+        birth_year: currentYear - 20, // Assume typical student age
+        student_type: finalData.under_103_last_year ? 'university' : 'other',
+        support_type: finalData.using_family_insurance ? 'full' : 'none',
+        insurance: finalData.using_family_insurance ? 'none' : 'national', // 'none' means family insurance
+        monthly_income_target: finalData.annual_income ? Math.round(finalData.annual_income / 12) : 85000,
+        // Legacy fields
+        is_student: finalData.under_103_last_year === true,
+        weekly_hours: finalData.weekly_hours ?? 20,
         fuyou_line: calculateFuyouLine(finalData),
         hourly_wage: finalData.annual_income && finalData.weekly_hours 
           ? Math.round(finalData.annual_income / (finalData.weekly_hours * 52))
-          : 1200, // Default wage
+          : 1200,
+        profile_completed: true, // Mark as completed
+        profile_completed_at: new Date().toISOString(),
+        onboarding_step: 4, // Mark as fully completed
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
