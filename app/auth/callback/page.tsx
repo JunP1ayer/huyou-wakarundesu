@@ -12,9 +12,9 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams()
   const [authState, setAuthState] = useState<AuthState>('processing')
   const [message, setMessage] = useState('認証処理を開始しています...')
-  const supabase = createSupabaseClient()
 
   const handleAuthCallback = useCallback(async () => {
+      const supabase = createSupabaseClient()
 
       try {
         setMessage('認証情報を確認しています...')
@@ -112,7 +112,7 @@ function AuthCallbackContent() {
         setMessage('認証処理でエラーが発生しました。')
         setTimeout(() => router.replace('/login?error=callback_failed'), 4000)
       }
-  }, [router, searchParams, supabase])
+  }, [router, searchParams])
 
   useEffect(() => {
     // タイムアウト設定（30秒）
