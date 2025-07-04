@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/components/providers/AuthProvider'
 import MonthlyIncomeInput from '@/components/income/MonthlyIncomeInput'
-import { getOnboardingProgress, getSupportTypeLabel, getInsuranceLabel } from '@/lib/profile-validation'
+import { getSupportTypeLabel, getInsuranceLabel } from '@/lib/profile-validation'
 import { getCurrentYearMonth, formatCurrency } from '@/lib/income-manager'
 
 export default function DashboardPage() {
@@ -42,7 +42,6 @@ export default function DashboardPage() {
   }
 
   const { month: currentMonth } = getCurrentYearMonth()
-  const progress = getOnboardingProgress(profile)
 
   return (
     <div className="min-h-screen bg-gray-50">

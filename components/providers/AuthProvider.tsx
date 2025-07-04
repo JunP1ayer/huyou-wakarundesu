@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { User, Session } from '@supabase/supabase-js'
 import { createSupabaseClient } from '@/lib/supabase'
@@ -44,7 +44,7 @@ export default function AuthProvider({
   const pathname = usePathname()
 
   // Fetch user profile
-  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+  const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
       const { data, error } = await supabase
         .from('user_profile')
@@ -62,7 +62,7 @@ export default function AuthProvider({
       console.error('🔴 Profile fetch failed:', error)
       return null
     }
-  }
+  }, [supabase])
 
   // Refresh profile data
   const refreshProfile = async () => {
@@ -74,7 +74,7 @@ export default function AuthProvider({
   }
 
   // Handle route protection and redirects
-  const handleRouteProtection = () => {
+  const handleRouteProtection = useCallback(() => {
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
     const isAuthOnlyRoute = AUTH_ONLY_ROUTES.includes(pathname)
     
@@ -115,7 +115,7 @@ export default function AuthProvider({
       }
       return
     }
-  }
+  }, [pathname, loading, user, session, profileComplete, router])
 
   // Initialize authentication state
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function AuthProvider({
     } else {
       setLoading(false)
     }
-  }, [initialSession, supabase])
+  }, [initialSession, supabase, user, fetchProfile])
 
   // Listen for auth state changes
   useEffect(() => {
@@ -174,12 +174,12 @@ export default function AuthProvider({
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, fetchProfile])
 
   // Handle route protection
   useEffect(() => {
     handleRouteProtection()
-  }, [user, session, profileComplete, loading, pathname])
+  }, [handleRouteProtection])
 
   const contextValue: AuthContextType = {
     user,

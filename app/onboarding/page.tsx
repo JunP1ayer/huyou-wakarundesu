@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { createSupabaseClient } from '@/lib/supabase'
-import { getNextOnboardingStep, getOnboardingProgress } from '@/lib/profile-validation'
+import { getNextOnboardingStep } from '@/lib/profile-validation'
 
 interface OnboardingData {
   birth_year?: number
@@ -142,8 +142,6 @@ export default function OnboardingPage() {
       </div>
     )
   }
-
-  const progress = getOnboardingProgress(profile)
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

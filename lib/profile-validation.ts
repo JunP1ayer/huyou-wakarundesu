@@ -19,14 +19,6 @@ interface RequiredProfileFields {
 export function isProfileComplete(profile: Partial<UserProfile> | null): boolean {
   if (!profile) return false
 
-  const requiredFields: (keyof RequiredProfileFields)[] = [
-    'birth_year',
-    'student_type', 
-    'support_type',
-    'insurance',
-    'monthly_income_target'
-  ]
-
   // 必須フィールドがすべて埋まっているかチェック
   const hasBirthYear = Boolean(profile.birth_year && typeof profile.birth_year === 'number' && profile.birth_year > 0)
   const hasStudentType = Boolean(profile.student_type)

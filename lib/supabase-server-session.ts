@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Session, User } from '@supabase/supabase-js'
+import type { Session } from '@supabase/supabase-js'
 
 // Helper function to validate required environment variables
 const validateEnvVars = (url: string | undefined, key: string | undefined): void => {

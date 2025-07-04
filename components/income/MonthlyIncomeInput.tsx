@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { 
   getMonthlyIncomeData, 
@@ -26,27 +26,28 @@ export default function MonthlyIncomeInput() {
   
   const { month: currentMonth } = getCurrentYearMonth()
 
-  // Load monthly data
-  useEffect(() => {
-    if (user) {
-      loadMonthlyData()
-    }
-  }, [user, currentYear])
-
-  const loadMonthlyData = async () => {
+  // Load monthly data function
+  const loadMonthlyData = useCallback(async () => {
     if (!user) return
 
     setLoading(true)
     try {
       const data = await getMonthlyIncomeData(user.id, currentYear)
       setMonthlyData(data)
-    } catch (err) {
+    } catch (error) {
       setError('データの読み込みに失敗しました')
-      console.error(err)
+      console.error(error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, currentYear])
+
+  // Load monthly data effect
+  useEffect(() => {
+    if (user) {
+      loadMonthlyData()
+    }
+  }, [user, currentYear, loadMonthlyData])
 
   const handleEdit = (month: number) => {
     const existingData = monthlyData.find(item => item.month === month)
@@ -76,9 +77,9 @@ export default function MonthlyIncomeInput() {
       await loadMonthlyData()
       setEditingMonth(null)
       setInputValue('')
-    } catch (err) {
+    } catch (error) {
       setError('保存に失敗しました')
-      console.error(err)
+      console.error(error)
     } finally {
       setSaving(false)
     }
@@ -102,8 +103,9 @@ export default function MonthlyIncomeInput() {
         input_method: 'estimated'
       })
       await loadMonthlyData()
-    } catch (err) {
+    } catch (error) {
       setError('予測値の設定に失敗しました')
+      console.error(error)
     }
   }
 
@@ -224,7 +226,7 @@ export default function MonthlyIncomeInput() {
 
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {monthRows.map(({ month, data, isPastMonth, isCurrentMonth, isFutureMonth, canEdit, canEstimate }) => (
+            {monthRows.map(({ month, data, isPastMonth, isCurrentMonth, canEdit, canEstimate }) => (
               <div
                 key={month}
                 className={`border rounded-lg p-4 ${
