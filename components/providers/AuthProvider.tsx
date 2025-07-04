@@ -6,8 +6,6 @@ import { User, Session } from '@supabase/supabase-js'
 import { createSupabaseClient } from '@/lib/supabase'
 import { UserProfile } from '@/lib/supabase'
 import { isProfileComplete } from '@/lib/profile-validation'
-import { guardCurrentRoute } from '@/lib/route-guardian'
-import { getUltraResilientAuthState } from '@/lib/auth-resilience'
 import { logAuthEvent, logAuthError } from '@/lib/auth-monitor'
 
 interface AuthContextType {
@@ -194,6 +192,7 @@ export default function AuthProvider({
       }
       initialize()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSession, supabase, fetchProfile, pathname])
 
   // Listen for auth state changes
@@ -223,7 +222,7 @@ export default function AuthProvider({
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase, fetchProfile])
+  }, [supabase, fetchProfile]) // session and user are set by this effect, not dependencies
 
   // Handle route protection
   useEffect(() => {
