@@ -14,7 +14,7 @@ export function useFuyouChat(): UseFuyouChatReturn {
   const [isOpen, setIsOpen] = useState(false)
   const [resolve, setResolve] = useState<((result: FuyouClassificationResult | null) => void) | null>(null)
 
-  const openChat = useCallback((isStudent: boolean): Promise<FuyouClassificationResult | null> => {
+  const openChat = useCallback((): Promise<FuyouClassificationResult | null> => {
     return new Promise((resolveFn) => {
       setIsOpen(true)
       setResolve(() => resolveFn)

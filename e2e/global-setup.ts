@@ -82,7 +82,7 @@ async function globalSetup(config: FullConfig) {
       await page.goto(`${baseURL}/admin/oauth-diagnostics`)
       await page.waitForSelector('h1', { timeout: 5000 })
       console.log('✅ OAuth診断ページ正常')
-    } catch (oauthError) {
+    } catch {
       console.warn('⚠️ OAuth診断ページアクセス失敗')
     }
 

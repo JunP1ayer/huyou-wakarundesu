@@ -1,6 +1,6 @@
 // TypeScript declarations for i18n
 declare module '*.json' {
-  const content: Record<string, any>
+  const content: Record<string, unknown>
   export default content
 }
 

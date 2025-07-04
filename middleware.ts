@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { 
   createRateLimitMiddleware, 
   RateLimitPresets, 
-  getClientIP,
-  getUserIdentifier 
+  getClientIP
 } from '@/lib/rate-limit'
 
 // レートリミット設定マッピング
@@ -48,14 +47,6 @@ function getRateLimitConfig(pathname: string) {
   return matchingPath ? RATE_LIMIT_CONFIG[matchingPath as keyof typeof RATE_LIMIT_CONFIG] : RATE_LIMIT_CONFIG.default
 }
 
-/**
- * CSRFトークン検証（開発中のため一時的にスキップ）
- */
-function validateCSRFToken(request: NextRequest): boolean {
-  // 開発環境や本番環境での初期デプロイではCSRF検証をスキップ
-  // TODO: 本格運用時に有効化
-  return true
-}
 
 /**
  * セキュリティヘッダー追加
@@ -82,46 +73,11 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
-/**
- * Bot検出とブロック（一時的に緩和）
- */
-function detectBot(request: NextRequest): boolean {
-  const userAgent = request.headers.get('user-agent') || ''
-  
-  // 明らかに悪意のあるBotのみブロック（緩和版）
-  const maliciousBotPatterns = [
-    /bot.*attack/i,
-    /malicious/i,
-    /scanner/i,
-    /hack/i
-  ]
-  
-  // 許可されたBotパターン（Vercel health checksを含む）
-  const allowedBotPatterns = [
-    /googlebot/i,
-    /bingbot/i,
-    /slackbot/i,
-    /facebookexternalhit/i,
-    /twitterbot/i,
-    /vercel/i,
-    /healthcheck/i,
-    /uptime/i,
-    /monitor/i
-  ]
-  
-  // 許可されたBotまたは空のUser-Agentの場合は通す
-  if (!userAgent || allowedBotPatterns.some(pattern => pattern.test(userAgent))) {
-    return false
-  }
-  
-  // 悪意のあるBotの場合のみブロック
-  return maliciousBotPatterns.some(pattern => pattern.test(userAgent))
-}
 
 /**
  * ログ記録
  */
-function logRequest(request: NextRequest, rateLimitResult?: any, blocked?: boolean) {
+function logRequest(request: NextRequest, rateLimitResult?: { success: boolean; headers: Record<string, string>; status?: number; message?: string }, blocked?: boolean) {
   if (process.env.NODE_ENV === 'production') {
     const logData = {
       timestamp: new Date().toISOString(),

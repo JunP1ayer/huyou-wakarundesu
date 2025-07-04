@@ -25,10 +25,10 @@ async function globalTeardown() {
 
       // テスト統計の生成
       try {
-        const junitFile = path.join(testResultsDir, 'e2e-results.xml')
+        // const junitFile = path.join(testResultsDir, 'e2e-results.xml') // Currently unused
         const jsonFile = path.join(testResultsDir, 'e2e-results.json')
         
-        let testStats = {
+        const testStats = {
           timestamp: new Date().toISOString(),
           totalTests: 0,
           passedTests: 0,
@@ -45,21 +45,26 @@ async function globalTeardown() {
           
           if (jsonData.suites) {
             // 統計計算
-            const allTests = jsonData.suites.flatMap((suite: any) => 
-              suite.specs?.flatMap((spec: any) => spec.tests || []) || []
+            interface Suite { specs?: Spec[] }
+            interface Spec { tests?: Test[] }
+            interface Test { outcome: string; results?: TestResult[] }
+            interface TestResult { duration?: number; workerIndex?: number }
+            
+            const allTests = (jsonData.suites as Suite[]).flatMap((suite) => 
+              suite.specs?.flatMap((spec) => spec.tests || []) || []
             )
             
             testStats.totalTests = allTests.length
-            testStats.passedTests = allTests.filter((test: any) => test.outcome === 'expected').length
-            testStats.failedTests = allTests.filter((test: any) => test.outcome === 'unexpected').length
-            testStats.skippedTests = allTests.filter((test: any) => test.outcome === 'skipped').length
+            testStats.passedTests = allTests.filter((test) => test.outcome === 'expected').length
+            testStats.failedTests = allTests.filter((test) => test.outcome === 'unexpected').length
+            testStats.skippedTests = allTests.filter((test) => test.outcome === 'skipped').length
             
             // 実行時間の計算
-            const durations = allTests.map((test: any) => test.results?.[0]?.duration || 0)
+            const durations = allTests.map((test) => test.results?.[0]?.duration || 0)
             testStats.duration = durations.reduce((sum: number, duration: number) => sum + duration, 0)
             
             // ブラウザ情報の取得
-            const browsers = new Set(allTests.map((test: any) => 
+            const browsers = new Set(allTests.map((test) => 
               test.results?.[0]?.workerIndex !== undefined ? `Project-${test.results[0].workerIndex}` : 'Unknown'
             ))
             testStats.browsers = Array.from(browsers)

@@ -1,17 +1,9 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { isOverThreshold, getThresholdStatus } from '@/utils/threshold'
+import { getThresholdStatus } from '@/utils/threshold'
 import { trackEvent } from '@/lib/gtag'
 
-interface NotificationOptions {
-  title: string
-  body: string
-  icon?: string
-  badge?: string
-  tag?: string
-  requireInteraction?: boolean
-}
 
 export function useThresholdNotifier(income: number, limit: number = 1030000) {
   const lastNotifiedRef = useRef<number>(0)

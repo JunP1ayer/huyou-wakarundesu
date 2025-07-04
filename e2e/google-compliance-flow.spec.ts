@@ -72,7 +72,6 @@ test.describe('Google Design Principles Compliance', () => {
     await page.goto('/onboarding')
 
     // 5. Verify onboarding flow starts promptly
-    const onboardingStart = Date.now()
     await expect(page.locator('h1:has-text("基本情報")')).toBeVisible({ timeout: 2000 })
 
     // 6. PRINCIPLE: Data-driven - Track user interactions

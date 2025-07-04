@@ -18,12 +18,12 @@ export const initializeAnalytics = (measurementId: string) => {
 
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || []
-  window.gtag = function gtag(command: GtagCommand, ...args: unknown[]) {
-    window.dataLayer?.push([command, ...args])
+  window.gtag = function gtag(...args: unknown[]) {
+    window.dataLayer?.push(args)
   }
 
   // Set default consent mode (deny all until user consents)
-  window.gtag('consent', 'default', {
+  window.gtag?.('consent', 'default', {
     'analytics_storage': 'denied',
     'ad_storage': 'denied',
     'ad_user_data': 'denied',
@@ -33,7 +33,7 @@ export const initializeAnalytics = (measurementId: string) => {
   })
 
   // Configure Google Analytics
-  window.gtag('config', measurementId, {
+  window.gtag?.('config', measurementId, {
     // Privacy-enhanced settings
     anonymize_ip: true,
     allow_google_signals: false,
@@ -53,7 +53,7 @@ export const initializeAnalytics = (measurementId: string) => {
   })
 
   // Set default parameters for all events
-  window.gtag('config', measurementId, {
+  window.gtag?.('config', measurementId, {
     custom_map: {
       'privacy_mode': 'strict'
     }

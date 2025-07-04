@@ -124,7 +124,7 @@ export function useDashboardData(): UseDashboardDataReturn {
         })
       }
 
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
       console.error('🔴 Dashboard data fetch error:', fetchError)
       setError('データの取得に失敗しました。ネットワーク接続を確認してください。')
       setPerformance({
