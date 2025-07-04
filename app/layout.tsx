@@ -6,8 +6,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { GoogleAnalytics } from 'nextjs-google-analytics';
 import { GA_ID } from '@/lib/gtag';
 import ServiceWorkerTracker from '@/components/analytics/ServiceWorkerTracker';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import SupabaseProvider from '@/components/providers/SupabaseProvider';
+import { GlobalErrorBoundary } from '@/components/error/GlobalErrorHandler';
+import AuthProvider from '@/components/providers/AuthProvider';
 import Header from '@/components/navigation/Header';
 import { getServerSession } from '@/lib/supabase-server-session';
 import "./globals.css";
@@ -74,14 +74,14 @@ export default async function RootLayout({
       >
         {GA_ID && <GoogleAnalytics trackPageViews />}
         <ServiceWorkerTracker />
-        <ErrorBoundary>
-          <SupabaseProvider initialSession={initialSession}>
+        <GlobalErrorBoundary>
+          <AuthProvider initialSession={initialSession}>
             <Header />
             <main className="min-h-screen">
               {children}
             </main>
-          </SupabaseProvider>
-        </ErrorBoundary>
+          </AuthProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   );

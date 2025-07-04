@@ -2,9 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Session, User } from '@supabase/supabase-js'
 
-// Helper function to check if a value is a valid (non-placeholder) environment variable
-const isValidEnvValue = (value: string | undefined): boolean => {
-  if (!value) return false
+// Helper function to validate required environment variables
+const validateEnvVars = (url: string | undefined, key: string | undefined): void => {
+  if (!url || !key) {
+    throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  }
   
   const placeholderPatterns = [
     'your-',
@@ -15,41 +17,27 @@ const isValidEnvValue = (value: string | undefined): boolean => {
     'localhost:3000',
   ]
   
-  return !placeholderPatterns.some(pattern => value.includes(pattern))
+  const hasPlaceholder = placeholderPatterns.some(pattern => 
+    url.includes(pattern) || key.includes(pattern)
+  )
+  
+  if (hasPlaceholder) {
+    throw new Error('Supabase environment variables contain placeholder values. Please set proper values.')
+  }
 }
 
-// Server-side session fetching for SSR/App Router
+// Server-side session fetching for SSR/App Router - Authentication Required
 export async function getServerSession(): Promise<Session | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE
   
-  // Force demo mode if explicitly enabled or if credentials are invalid
-  if (demoMode === 'true' || !isValidEnvValue(url) || !isValidEnvValue(key)) {
-    console.warn('🟡 SSR Demo Mode: Returning mock session for preview')
-    console.warn(`📊 Demo mode reasons: DEMO_MODE=${demoMode}, URL_VALID=${isValidEnvValue(url)}, KEY_VALID=${isValidEnvValue(key)}`)
-    
-    return {
-      access_token: 'demo-ssr-token',
-      refresh_token: 'demo-ssr-refresh',
-      expires_in: 3600,
-      token_type: 'bearer',
-      user: {
-        id: 'demo-user-001',
-        email: 'demo@example.com',
-        aud: 'authenticated',
-        role: 'authenticated',
-        app_metadata: {},
-        user_metadata: {},
-        created_at: new Date().toISOString(),
-      } as User,
-    } as Session
-  }
+  // Validate environment variables - no demo mode fallback
+  validateEnvVars(url, key)
   
   try {
     const cookieStore = await cookies()
     
-    const supabase = createServerClient(url!, key!, {
+    const supabase = createServerClient(url as string, key as string, {
       cookies: {
         getAll() {
           return cookieStore.getAll()

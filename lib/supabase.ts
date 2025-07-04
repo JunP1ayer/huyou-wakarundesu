@@ -1,43 +1,53 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
 
-// Use environment variables directly to avoid build issues
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE
+// Validate environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Check if we're in demo mode (explicit flag or no real Supabase connection)
-export const isDemoMode = demoMode === 'true' || !supabaseUrl || !supabaseAnonKey
+// Validation function for environment variables
+function validateSupabaseConfig(): void {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  }
+
+  const placeholderPatterns = [
+    'your-',
+    'YOUR_',
+    'replace-me',
+    'REPLACE_ME',
+    'example.com',
+    'localhost:3000',
+  ]
+
+  const hasPlaceholder = placeholderPatterns.some(pattern => 
+    supabaseUrl.includes(pattern) || supabaseAnonKey.includes(pattern)
+  )
+
+  if (hasPlaceholder) {
+    throw new Error('Supabase environment variables contain placeholder values. Please set proper values.')
+  }
+}
 
 // Browser client singleton - prevents multiple GoTrueClient instances
-export function createSupabaseClient(): SupabaseClient | null {
+export function createSupabaseClient(): SupabaseClient {
   // Server-side rendering check
   if (typeof window === 'undefined') {
-    return null
+    throw new Error('createSupabaseClient() can only be called on the client side')
   }
+
+  // Validate configuration
+  validateSupabaseConfig()
 
   // Check for existing singleton instance
   if (window.__supabase_singleton) {
     return window.__supabase_singleton
   }
-
-  // Force demo mode if explicitly enabled or if credentials are missing
-  if (demoMode === 'true' || !supabaseUrl || !supabaseAnonKey) {
-    console.warn('🟡 SUPABASE CLIENT DEMO MODE: Missing or invalid credentials')
-    console.warn(`📊 Demo mode reasons: DEMO_MODE=${demoMode}, URL=${supabaseUrl ? '✅' : '❌'}, KEY=${supabaseAnonKey ? '✅' : '❌'}`)
-    
-    // Set demo mode flag
-    if (typeof window !== 'undefined') {
-      window.__demo_mode = true
-    }
-    return null
-  }
   
   // Create singleton instance with @supabase/ssr proper configuration
-  const client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    // @supabase/ssr uses these specific options
+  const client = createBrowserClient(supabaseUrl!, supabaseAnonKey!, {
     cookieOptions: {
-      name: supabaseUrl ? `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token` : 'sb-auth-token',
+      name: `sb-${new URL(supabaseUrl!).hostname.split('.')[0]}-auth-token`,
       domain: undefined, // Use current domain
       path: '/',
       sameSite: 'lax',
@@ -53,69 +63,29 @@ export function createSupabaseClient(): SupabaseClient | null {
   return client
 }
 
-// Helper function for authenticated operations
+// Helper function for authenticated operations - AUTHENTICATION REQUIRED
 export async function getAuthenticatedSupabaseClient(): Promise<{
   supabase: SupabaseClient
   user: { id: string; email?: string }
 } | null> {
-  // Check for demo mode - prioritize explicit flag
-  if (demoMode === 'true' || (typeof window !== 'undefined' && window.__demo_mode)) {
-    // Return a mock authenticated user for demo mode with mock database operations
-    const mockSupabase = {
-      from: () => ({
-        upsert: () => Promise.resolve({ data: null, error: null }),
-        insert: () => Promise.resolve({ data: null, error: null }),
-        update: () => Promise.resolve({ data: null, error: null }),
-        select: () => Promise.resolve({ data: [], error: null }),
-        delete: () => Promise.resolve({ data: null, error: null }),
-      }),
-      auth: {
-        getUser: () => Promise.resolve({ 
-          data: { user: { id: 'demo-user-001', email: 'demo@example.com' } }, 
-          error: null 
-        }),
-        getSession: () => Promise.resolve({ 
-          data: { session: { user: { id: 'demo-user-001', email: 'demo@example.com' } } }, 
-          error: null 
-        }),
-      }
-    } as unknown as SupabaseClient
-
-    return {
-      supabase: mockSupabase,
-      user: {
-        id: 'demo-user-001',
-        email: 'demo@example.com'
-      }
-    }
-  }
-  
   const supabase = createSupabaseClient()
-  
-  if (!supabase) {
-    console.error('🔴 Supabase client not available')
-    console.error('📋 Check environment variables in Vercel Dashboard:')
-    console.error('   - NEXT_PUBLIC_SUPABASE_URL')
-    console.error('   - NEXT_PUBLIC_SUPABASE_ANON_KEY')
-    return null
-  }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error) {
-      console.error('Auth error:', error.message)
+      console.error('🔴 Authentication error:', error.message)
       return null
     }
     
     if (!user) {
-      console.error('User not authenticated: Auth session missing!')
+      console.error('🔴 User not authenticated - login required')
       return null
     }
 
     return { supabase, user }
   } catch (error) {
-    console.error('Authentication check failed:', error)
+    console.error('🔴 Authentication check failed:', error)
     return null
   }
 }
@@ -123,13 +93,31 @@ export async function getAuthenticatedSupabaseClient(): Promise<{
 // Database types
 export interface UserProfile {
   user_id: string
+  profile_completed: boolean
+  profile_completed_at?: string
+  onboarding_step: number
+  birth_year?: number
+  student_type?: 'university' | 'vocational' | 'high_school' | 'graduate' | 'other'
   is_student: boolean
-  support_type: 'full' | 'partial' | 'none'
-  insurance: 'national' | 'employee' | 'none'
-  company_large: boolean
+  support_type: 'full' | 'partial' | 'none' | 'unknown'
+  insurance: 'national' | 'employee' | 'none' | 'unknown'
+  company_large?: boolean
   weekly_hours: number
   fuyou_line: number
   hourly_wage: number
+  monthly_income_target?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface UserMonthlyIncome {
+  id: string
+  user_id: string
+  year: number
+  month: number
+  income_amount: number
+  is_estimated: boolean
+  input_method: 'manual' | 'bank_api' | 'estimated'
   created_at: string
   updated_at: string
 }
@@ -167,4 +155,11 @@ export interface UserMoneytreeTokens {
   expires_at: string
   created_at: string
   updated_at: string
+}
+
+// Type extensions for global window object
+declare global {
+  interface Window {
+    __supabase_singleton?: SupabaseClient
+  }
 }
