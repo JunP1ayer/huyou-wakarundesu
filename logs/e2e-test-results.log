@@ -1,0 +1,14 @@
+=== Production Endpoint Test - Fri Jul  4 23:39:47 JST 2025 ===
+✅ Homepage responds: 200 OK
+✅ Login page responds: 200 OK
+✅ API health endpoint: 200 OK
+✅ No obvious configuration errors in page content
+❌ Google OAuth elements not found in login page
+
+🎯 Manual testing required:
+1. Open: https://huyou-wakarundesu.vercel.app/login
+2. Click 'Google でログイン' button
+3. Complete Google OAuth flow
+4. Verify redirect to dashboard
+5. Check DevTools for console/network errors
+
