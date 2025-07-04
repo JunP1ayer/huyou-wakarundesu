@@ -11,9 +11,15 @@ export default function Header() {
   const { user, session } = useAuth()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const supabase = createSupabaseClient()
+  const [supabase] = useState(() => {
+    // Only create Supabase client on the client side
+    if (typeof window === 'undefined') return null
+    return createSupabaseClient()
+  })
 
   const handleLogout = async () => {
+    if (!supabase) return
+    
     setIsLoggingOut(true)
     try {
       await supabase.auth.signOut()

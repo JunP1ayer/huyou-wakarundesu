@@ -24,7 +24,11 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [showAlternative, setShowAlternative] = useState(false)
   const [error, setError] = useState('')
-  const supabase = createSupabaseClient()
+  const [supabase] = useState(() => {
+    // Only create Supabase client on the client side
+    if (typeof window === 'undefined') return null
+    return createSupabaseClient()
+  })
   const experimentId = 'default' // Default experiment ID
 
   // Auto-redirect if already authenticated
@@ -45,6 +49,11 @@ function LoginContent() {
   }, [router, t])
 
   const handleGoogleLogin = async () => {
+    if (!supabase) {
+      setError(t('auth.login.loginFailed'))
+      return
+    }
+    
     setIsLoading(true)
     setError('')
     

@@ -38,13 +38,19 @@ export default function AuthProvider({
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileComplete, setProfileComplete] = useState(false)
   const [loading, setLoading] = useState(!initialSession)
-  const [supabase] = useState(() => createSupabaseClient())
+  const [supabase] = useState(() => {
+    // Only create Supabase client on the client side
+    if (typeof window === 'undefined') return null
+    return createSupabaseClient()
+  })
   
   const router = useRouter()
   const pathname = usePathname()
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
+    if (!supabase) return null
+    
     try {
       const { data, error } = await supabase
         .from('user_profile')
@@ -119,6 +125,11 @@ export default function AuthProvider({
 
   // Initialize authentication state
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     const initializeAuth = async () => {
       try {
         // Get current session if not provided
@@ -151,6 +162,8 @@ export default function AuthProvider({
 
   // Listen for auth state changes
   useEffect(() => {
+    if (!supabase) return
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('🔐 Auth state change:', event, currentSession?.user?.email)
