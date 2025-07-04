@@ -8,19 +8,25 @@ import { UserProfile } from '@/lib/supabase'
 import { isProfileComplete } from '@/lib/profile-validation'
 
 interface AuthState {
-  user: any | null
-  session: any | null
+  user: {
+    id: string
+    email?: string
+    app_metadata?: Record<string, unknown>
+  } | null
+  session: {
+    access_token: string
+    refresh_token?: string
+    expires_at?: number
+    user: {
+      id: string
+      email?: string
+      app_metadata?: Record<string, unknown>
+    }
+  } | null
   profile: UserProfile | null
   profileComplete: boolean
   lastCheck: number
   retryCount: number
-}
-
-interface AuthRecoveryOptions {
-  maxRetries: number
-  retryDelay: number
-  forceRefresh: boolean
-  clearLocalStorage: boolean
 }
 
 class AuthResilientManager {
@@ -99,7 +105,7 @@ class AuthResilientManager {
   /**
    * Get session with progressive retry mechanism
    */
-  private async getSessionWithRetries(): Promise<any> {
+  private async getSessionWithRetries(): Promise<AuthState['session']> {
     for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
       try {
         console.log(`🔄 ULTRA: Session attempt ${attempt + 1}/${this.MAX_RETRIES}`)
@@ -224,7 +230,7 @@ class AuthResilientManager {
   /**
    * Handle authentication failures with recovery
    */
-  private async handleAuthenticationFailure(error: any): Promise<AuthState> {
+  private async handleAuthenticationFailure(error: unknown): Promise<AuthState> {
     console.error('🔴 ULTRA: Handling authentication failure', error)
     
     this.authState.retryCount++

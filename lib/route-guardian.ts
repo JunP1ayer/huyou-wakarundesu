@@ -87,7 +87,8 @@ class RouteGuardian {
 
       // Step 5: Check role-based access
       if (options.allowedRoles && authState.user) {
-        const userRole = authState.user.app_metadata?.role || 'user'
+        const roleValue = authState.user.app_metadata?.role
+        const userRole = typeof roleValue === 'string' ? roleValue : 'user'
         if (!options.allowedRoles.includes(userRole)) {
           console.log('🚫 ULTRA-GUARD: Role access denied')
           return this.createRedirectResult('/dashboard', 'insufficient_role')
@@ -119,7 +120,10 @@ class RouteGuardian {
   /**
    * Check special route logic
    */
-  private checkSpecialRoutes(currentPath: string, authState: any): RouteGuardResult | null {
+  private checkSpecialRoutes(currentPath: string, authState: {
+    user: { id: string } | null
+    profileComplete: boolean
+  }): RouteGuardResult | null {
     // Authenticated user on login page
     if (currentPath === '/login' && authState.user) {
       if (authState.profileComplete) {

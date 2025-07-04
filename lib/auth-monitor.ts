@@ -6,11 +6,15 @@
 interface AuthEvent {
   timestamp: number
   type: string
-  details: any
+  details: Record<string, unknown>
   pathname?: string
   userId?: string
   sessionId?: string
-  error?: any
+  error?: {
+    message: string
+    stack?: string
+    code?: string
+  }
 }
 
 interface AuthMetrics {
@@ -49,14 +53,24 @@ class AuthFlowMonitor {
   /**
    * Log authentication event
    */
-  logEvent(type: string, details: any, pathname?: string): void {
+  logEvent(type: string, details: Record<string, unknown>, pathname?: string): void {
     const event: AuthEvent = {
       timestamp: Date.now(),
       type,
       details,
       pathname,
-      userId: details?.userId || details?.user?.id,
-      sessionId: details?.sessionId || details?.session?.id
+      userId: typeof details === 'object' && details !== null && 'userId' in details 
+        ? String(details.userId) 
+        : typeof details === 'object' && details !== null && 'user' in details && 
+          typeof details.user === 'object' && details.user !== null && 'id' in details.user
+        ? String((details.user as Record<string, unknown>).id)
+        : undefined,
+      sessionId: typeof details === 'object' && details !== null && 'sessionId' in details
+        ? String(details.sessionId)
+        : typeof details === 'object' && details !== null && 'session' in details &&
+          typeof details.session === 'object' && details.session !== null && 'id' in details.session
+        ? String((details.session as Record<string, unknown>).id)
+        : undefined
     }
 
     // Add to events array
@@ -85,16 +99,18 @@ class AuthFlowMonitor {
   /**
    * Log error event
    */
-  logError(type: string, error: any, details?: any, pathname?: string): void {
+  logError(type: string, error: unknown, details?: Record<string, unknown>, pathname?: string): void {
     const event: AuthEvent = {
       timestamp: Date.now(),
       type,
       details: details || {},
       pathname,
       error: {
-        message: error?.message || String(error),
-        stack: error?.stack,
-        code: error?.code
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        code: error && typeof error === 'object' && 'code' in error 
+          ? String((error as Record<string, unknown>).code) 
+          : undefined
       }
     }
 
@@ -183,7 +199,7 @@ class AuthFlowMonitor {
   private handleCriticalEvent(event: AuthEvent): void {
     console.warn('🚨 ULTRA-MONITOR: Critical event detected', event)
     
-    // You could add additional handling here:
+    // Additional handling could be added here:
     // - Send to error tracking service
     // - Trigger alerts
     // - Auto-recovery mechanisms
@@ -265,7 +281,7 @@ ${errors.map(e => `- ${new Date(e.timestamp).toLocaleTimeString()} ❌ ${e.type}
           timestamp: Date.now()
         }
         localStorage.setItem('ultra_auth_monitor', JSON.stringify(data))
-      } catch (error) {
+      } catch {
         // Ignore storage errors
       }
     }
@@ -287,8 +303,8 @@ ${errors.map(e => `- ${new Date(e.timestamp).toLocaleTimeString()} ❌ ${e.type}
             console.log('📊 ULTRA-MONITOR: Loaded previous session data')
           }
         }
-      } catch (error) {
-        console.warn('⚠️ ULTRA-MONITOR: Failed to load stored data', error)
+      } catch {
+        console.warn('⚠️ ULTRA-MONITOR: Failed to load stored data')
       }
     }
   }
@@ -318,7 +334,7 @@ ${errors.map(e => `- ${new Date(e.timestamp).toLocaleTimeString()} ❌ ${e.type}
   /**
    * Export data for debugging
    */
-  exportData(): any {
+  exportData(): Record<string, unknown> {
     return {
       events: this.events,
       metrics: this.metrics,
@@ -335,11 +351,11 @@ export const authMonitor = AuthFlowMonitor.getInstance()
 authMonitor.loadFromStorage()
 
 // Convenient logging functions
-export const logAuthEvent = (type: string, details: any, pathname?: string) => {
+export const logAuthEvent = (type: string, details: Record<string, unknown>, pathname?: string) => {
   authMonitor.logEvent(type, details, pathname)
 }
 
-export const logAuthError = (type: string, error: any, details?: any, pathname?: string) => {
+export const logAuthError = (type: string, error: unknown, details?: Record<string, unknown>, pathname?: string) => {
   authMonitor.logError(type, error, details, pathname)
 }
 
@@ -353,13 +369,23 @@ export const getAuthMetrics = () => {
 
 // Global debug functions for console
 if (typeof window !== 'undefined') {
-  (window as any).ultraAuthDebug = {
+  interface UltraAuthDebug {
+    getReport: () => void
+    getMetrics: () => void
+    getRecentEvents: (count?: number) => void
+    clear: () => void
+    export: () => Record<string, unknown>
+  }
+  
+  const ultraAuthDebug: UltraAuthDebug = {
     getReport: () => console.log(authMonitor.generateReport()),
     getMetrics: () => console.log(authMonitor.getMetrics()),
     getRecentEvents: (count?: number) => console.log(authMonitor.getRecentEvents(count)),
     clear: () => authMonitor.clear(),
     export: () => authMonitor.exportData()
   }
+  
+  ;(window as typeof window & { ultraAuthDebug: UltraAuthDebug }).ultraAuthDebug = ultraAuthDebug
   
   console.log('🛠️ ULTRA-MONITOR: Debug functions available at window.ultraAuthDebug')
 }

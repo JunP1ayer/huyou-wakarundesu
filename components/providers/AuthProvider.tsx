@@ -25,7 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const PUBLIC_ROUTES = ['/login', '/auth/callback']
 
 // Routes that require authentication but not profile completion
-const AUTH_ONLY_ROUTES = ['/']
+// const AUTH_ONLY_ROUTES = ['/']
 
 interface AuthProviderProps {
   children: React.ReactNode
@@ -172,8 +172,8 @@ export default function AuthProvider({
           userId: authState.user?.id
         }, pathname)
         
-        setUser(authState.user)
-        setSession(authState.session)
+        setUser(authState.user as User | null)
+        setSession(authState.session as Session | null)
         setProfile(authState.profile)
         setProfileComplete(authState.profileComplete)
         
