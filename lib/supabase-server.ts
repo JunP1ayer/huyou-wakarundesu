@@ -13,35 +13,59 @@ export async function createSupabaseServerClient() {
     return null
   }
   
-  const cookieStore = await cookies()
+  try {
+    const cookieStore = await cookies()
+    
+    return createServerClient(
+      url,
+      key,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, {
+                  ...options,
+                  // Ensure cookies work across environments
+                  sameSite: 'lax',
+                  secure: process.env.NODE_ENV === 'production',
+                  httpOnly: false, // Allow client-side access for auth tokens
+                  path: '/',
+                })
+              )
+            } catch (error) {
+              // Server component - log but don't throw on cookie setting errors
+              console.warn('Failed to set cookies in server component:', error)
+            }
+          },
+        },
+      }
+    )
+  } catch (error) {
+    console.error('Failed to create Supabase server client:', error)
+    return null
+  }
+}
+
+// Simplified server client for read-only operations
+export function createSupabaseServerClientReadOnly() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
-  return createServerClient(
-    url,
-    key,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, {
-                ...options,
-                // Ensure cookies work across environments
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: true,
-                path: '/',
-              })
-            )
-          } catch {
-            // Server component - ignore cookie setting errors
-          }
-        },
-      },
-    }
-  )
+  if (!url || !key) {
+    console.error('Supabase server client: Missing environment variables')
+    return null
+  }
+  
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
 }
 
 // Admin client for API routes (service role key)
