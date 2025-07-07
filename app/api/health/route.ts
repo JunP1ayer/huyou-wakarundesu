@@ -1,46 +1,8 @@
 import { NextResponse } from 'next/server'
 import { config, validateEnvironment } from '@/lib/config'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
 export async function GET() {
   const { isValid, missing, warnings } = validateEnvironment()
-  
-  // Test server-side Supabase connection
-  let supabaseTest = { connected: false, error: null, sessionTest: false }
-  if (config.supabase.url && config.supabase.anonKey) {
-    try {
-      const cookieStore = cookies()
-      const supabase = createServerClient(
-        config.supabase.url,
-        config.supabase.anonKey,
-        {
-          cookies: {
-            get(name: string) {
-              return cookieStore.get(name)?.value
-            },
-            set() {},
-            remove() {},
-          },
-        }
-      )
-      
-      // Test getSession on server-side
-      const { data: session, error: sessionError } = await supabase.auth.getSession()
-      supabaseTest.connected = true
-      supabaseTest.sessionTest = !sessionError
-      if (sessionError) {
-        supabaseTest.error = sessionError.message
-      }
-      console.log('Health check - Supabase session test:', { 
-        hasSession: !!session?.session, 
-        error: sessionError?.message 
-      })
-    } catch (error: any) {
-      supabaseTest.error = error.message
-      console.error('Health check - Supabase connection failed:', error.message)
-    }
-  }
   
   const health = {
     status: isValid ? 'healthy' : 'degraded',
@@ -55,7 +17,6 @@ export async function GET() {
       supabase: {
         configured: !!(config.supabase.url && config.supabase.anonKey),
         status: config.supabase.url ? 'available' : 'missing',
-        serverTest: supabaseTest,
       },
       openai: {
         configured: !!config.openai.apiKey,
