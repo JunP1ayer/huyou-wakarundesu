@@ -41,21 +41,26 @@ function AuthCallbackContent() {
 
         setMessage('セッション情報を取得しています...')
         
-        // セッション取得（最大3回リトライ）
+        // ユーザー認証確認（最大3回リトライ）
         let session = null
         for (let i = 0; i < 3; i++) {
-          const { data, error: sessionError } = await supabase.auth.getSession()
+          // First validate user authentication
+          const { data: userData, error: userError } = await supabase.auth.getUser()
           
-          if (sessionError) {
-            console.error(`🔴 Session fetch error (attempt ${i + 1}):`, sessionError)
-            if (i === 2) throw sessionError
+          if (userError) {
+            console.error(`🔴 User validation error (attempt ${i + 1}):`, userError.message)
+            if (i === 2) throw userError
             await new Promise(resolve => setTimeout(resolve, 1000))
             continue
           }
           
-          if (data.session) {
-            session = data.session
-            break
+          if (userData.user) {
+            // If user is authenticated, get session
+            const { data, error: sessionError } = await supabase.auth.getSession()
+            if (!sessionError && data.session) {
+              session = data.session
+              break
+            }
           }
           
           if (i < 2) {
