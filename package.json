@@ -8,7 +8,8 @@
   },
   "scripts": {
     "setup": "bash scripts/setup-local-env.sh",
-    "dev": "rimraf .next && next dev --turbopack",
+    "dev": "rimraf .next && next dev",
+    "dev:turbo": "rimraf .next && next dev --turbopack",
     "predev": "node scripts/check-env.js --quick",
     "build": "rimraf .next && next build",
     "start": "next start",

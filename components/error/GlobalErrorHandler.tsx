@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, ErrorInfo, ReactNode } from 'react'
+import { debugError } from '@/lib/debug'
 
 interface Props {
   children: ReactNode
@@ -11,6 +12,7 @@ interface State {
   hasError: boolean
   error?: Error
   errorInfo?: ErrorInfo
+  isChunkError?: boolean
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
@@ -20,16 +22,57 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+    // Detect various forms of chunk loading errors
+    const isChunkError = 
+      /Loading chunk \d+ failed/.test(error.message) ||
+      /Loading CSS chunk \d+ failed/.test(error.message) ||
+      error.name === 'ChunkLoadError' ||
+      /ChunkLoadError/.test(error.message) ||
+      /Failed to import/.test(error.message) ||
+      /Importing a module script failed/.test(error.message);
+
+    return { hasError: true, error, isChunkError }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('🔴 Global Error Boundary caught an error:', error, errorInfo)
+    debugError('[GlobalErrorBoundary] Error caught:', error.message)
+    
+    // Check if this is a chunk error
+    const isChunkError = 
+      /Loading chunk \d+ failed/.test(error.message) ||
+      /Loading CSS chunk \d+ failed/.test(error.message) ||
+      error.name === 'ChunkLoadError' ||
+      /ChunkLoadError/.test(error.message) ||
+      /Failed to import/.test(error.message) ||
+      /Importing a module script failed/.test(error.message);
+
+    if (isChunkError) {
+      debugError('[GlobalErrorBoundary] ChunkLoadError detected → forcing hard reload')
+      console.warn('[GlobalErrorBoundary] ChunkLoadError detected, forcing hard reload...')
+      
+      // Force immediate reload for chunk errors
+      if (typeof window !== 'undefined' && window.location) {
+        const reloadFunction = () => window.location.reload();
+        
+        // Clear any cached resources before reload
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              caches.delete(name);
+            });
+          }).finally(reloadFunction);
+        } else {
+          reloadFunction();
+        }
+      }
+      return; // Don't proceed with normal error handling
+    }
     
     // Log to external service if needed
     this.logErrorToService(error, errorInfo)
     
-    this.setState({ error, errorInfo })
+    this.setState({ error, errorInfo, isChunkError })
   }
 
   logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
@@ -39,23 +82,40 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       stack: error.stack,
       componentStack: errorInfo.componentStack,
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      url: typeof window !== 'undefined' && window.location ? window.location.href : 'unknown'
     })
   }
 
   handleReload = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
-    window.location.reload()
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined, isChunkError: false })
+    if (typeof window !== 'undefined' && window.location) {
+      window.location.reload()
+    }
   }
 
   handleGoHome = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
-    window.location.href = '/'
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined, isChunkError: false })
+    if (typeof window !== 'undefined' && window.location) {
+      window.location.href = '/'
+    }
   }
 
   render() {
     if (this.state.hasError) {
+      // For chunk errors, show loading state while reloading
+      if (this.state.isChunkError) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-600">アプリケーションを更新しています...</p>
+              <p className="text-sm text-gray-500 mt-2">Updating application...</p>
+            </div>
+          </div>
+        );
+      }
+
       if (this.props.fallback) {
         return this.props.fallback
       }
@@ -132,7 +192,11 @@ export function AuthError({ message, onRetry }: { message: string; onRetry?: () 
             </button>
           )}
           <button
-            onClick={() => window.location.href = '/login'}
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.location) {
+                window.location.href = '/login'
+              }
+            }}
             className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50"
           >
             ログインページに戻る
