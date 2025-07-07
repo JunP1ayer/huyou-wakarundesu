@@ -3,6 +3,7 @@
  */
 
 import { createSupabaseClient, UserMonthlyIncome } from '@/lib/supabase'
+import { debugLog, debugError } from '@/lib/debug'
 
 export interface MonthlyIncomeData {
   month: number
@@ -49,10 +50,10 @@ export function getCurrentYearMonth(): { year: number; month: number } {
  * 指定年の月次収入データを取得
  */
 export async function getMonthlyIncomeData(userId: string, year: number): Promise<UserMonthlyIncome[]> {
-  console.log('[DEBUG] getMonthlyIncomeData: creating supabase client')
+  debugLog('[DEBUG] getMonthlyIncomeData: creating supabase client')
   const supabase = createSupabaseClient()
   
-  console.log('[DEBUG] getMonthlyIncomeData: querying user_monthly_income table', { userId, year })
+  debugLog('[DEBUG] getMonthlyIncomeData: querying user_monthly_income table', { userId, year })
   const { data, error } = await supabase
     .from('user_monthly_income')
     .select('*')
@@ -61,8 +62,8 @@ export async function getMonthlyIncomeData(userId: string, year: number): Promis
     .order('month', { ascending: true })
 
   if (error) {
-    console.error('[ERROR] 月次収入データ取得エラー:', error)
-    console.error('[ERROR] Error details:', {
+    debugError('[ERROR] 月次収入データ取得エラー:', error)
+    debugError('[ERROR] Error details:', {
       message: error.message,
       details: error.details,
       hint: error.hint,
@@ -71,7 +72,7 @@ export async function getMonthlyIncomeData(userId: string, year: number): Promis
     throw new Error(`収入データの取得に失敗しました: ${error.message}`)
   }
 
-  console.log('[DEBUG] getMonthlyIncomeData: query successful, returning', data?.length || 0, 'records')
+  debugLog('[DEBUG] getMonthlyIncomeData: query successful, returning', data?.length || 0, 'records')
   return data || []
 }
 

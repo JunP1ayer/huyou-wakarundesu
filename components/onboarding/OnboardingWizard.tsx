@@ -8,6 +8,7 @@ import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
 import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useToastFallback } from '@/components/notifications/Toast'
+import { debugLog, debugStep, debugError } from '@/lib/debug'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
@@ -132,10 +133,10 @@ export default function OnboardingWizard() {
   }
 
   const handleAnswer = (value: boolean | string | number) => {
-    console.log('[DEBUG] handleAnswer 呼ばれた', { value, currentStep, totalSteps, isLoading })  // ★追加
+    debugLog('[DEBUG] handleAnswer 呼ばれた', { value, currentStep, totalSteps, isLoading })
     
     if (isLoading) {
-      console.log('[DEBUG] 既に処理中のため無視')  // ★追加
+      debugLog('[DEBUG] 既に処理中のため無視')
       return
     }
     
@@ -155,11 +156,11 @@ export default function OnboardingWizard() {
     setData(newData)
 
     if (currentStep < totalSteps - 1) {
-      console.log('[DEBUG] 次のステップへ移動', currentStep + 1)  // ★追加
+      debugLog('[DEBUG] 次のステップへ移動', currentStep + 1)
       setCurrentStep(currentStep + 1)
       setInputValue('')
     } else {
-      console.log('[DEBUG] 最終ステップ完了 - handleOnboardingComplete呼び出し')  // ★追加
+      debugLog('[DEBUG] 最終ステップ完了 - handleOnboardingComplete呼び出し')
       handleOnboardingComplete(newData)
     }
   }
@@ -177,24 +178,24 @@ export default function OnboardingWizard() {
   }
 
   const handleOnboardingComplete = async (finalData: OnboardingData) => {
-    console.log('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)
+    debugLog('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)
     setIsLoading(true)
     setError(null)
 
     try {
-      console.log('[STEP-1] Supabase client作成開始')
+      debugStep('Supabase client作成開始')
       const authClient = await getAuthenticatedSupabaseClient()
       if (!authClient) {
-        console.error('[ERROR] authClient取得失敗 - 認証が必要')
+        debugError('[ERROR] authClient取得失敗 - 認証が必要')
         setError('認証が必要です。ログインしてください。')
         showToast('認証が必要です。ログインしてください。', 'error')
         return
       }
-      console.log('[STEP-1] Supabase client作成成功', { user_id: authClient.user.id })
+      debugStep('Supabase client作成成功', { user_id: authClient.user.id })
 
       const { supabase, user } = authClient
 
-      console.log('[STEP-2] profile upsert開始')
+      debugStep('profile upsert開始')
       // Convert simplified onboarding data to complete profile format required by isProfileComplete()
       const currentYear = new Date().getFullYear()
       const profileData = {
@@ -222,12 +223,12 @@ export default function OnboardingWizard() {
         .upsert(profileData, { onConflict: 'user_id' })
 
       if (profileError) {
-        console.error('[ERROR] profile upsert失敗', profileError)
+        debugError('[ERROR] profile upsert失敗', profileError)
         throw profileError
       }
-      console.log('[STEP-2] profile upsert成功')
+      debugStep('profile upsert成功')
 
-      console.log('[STEP-3] stats upsert開始')
+      debugStep('stats upsert開始')
       // Create initial stats
       const statsData = {
         user_id: user.id,
@@ -245,21 +246,21 @@ export default function OnboardingWizard() {
         .upsert(statsData, { onConflict: 'user_id' })
 
       if (statsError) {
-        console.error('[ERROR] stats upsert失敗', statsError)
+        debugError('[ERROR] stats upsert失敗', statsError)
         throw statsError
       }
-      console.log('[STEP-3] stats upsert成功')
+      debugStep('stats upsert成功')
 
-      console.log('[STEP-4] router.push("/dashboard")')
+      debugStep('router.push("/dashboard")')
       router.replace('/dashboard')
-      console.log('[STEP-4] router.replace完了')
+      debugStep('router.replace完了')
     } catch (err) {
-      console.error('[FATAL] onboardingComplete 失敗', err)
+      debugError('[FATAL] onboardingComplete 失敗', err)
       const errorMessage = '設定の保存に失敗しました。もう一度お試しください。'
       setError(errorMessage)
       showToast(errorMessage, 'error')
     } finally {
-      console.log('[FINALLY] setIsLoading(false)')
+      debugLog('[FINALLY] setIsLoading(false)')
       setIsLoading(false)
     }
   }
