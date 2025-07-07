@@ -130,6 +130,13 @@ export default function OnboardingWizard() {
   }
 
   const handleAnswer = (value: boolean | string | number) => {
+    console.log('[DEBUG] handleAnswer 呼ばれた', { value, currentStep, totalSteps, isLoading })  // ★追加
+    
+    if (isLoading) {
+      console.log('[DEBUG] 既に処理中のため無視')  // ★追加
+      return
+    }
+    
     setValidationError(null)
     
     // Number input validation
@@ -146,9 +153,11 @@ export default function OnboardingWizard() {
     setData(newData)
 
     if (currentStep < totalSteps - 1) {
+      console.log('[DEBUG] 次のステップへ移動', currentStep + 1)  // ★追加
       setCurrentStep(currentStep + 1)
       setInputValue('')
     } else {
+      console.log('[DEBUG] 最終ステップ完了 - handleOnboardingComplete呼び出し')  // ★追加
       handleOnboardingComplete(newData)
     }
   }
@@ -166,17 +175,20 @@ export default function OnboardingWizard() {
   }
 
   const handleOnboardingComplete = async (finalData: OnboardingData) => {
+    console.log('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)  // ★追加
     setIsLoading(true)
     setError(null)
 
     try {
       const authClient = await getAuthenticatedSupabaseClient()
+      console.log('[DEBUG] authClient取得完了', authClient ? 'success' : 'failed')  // ★追加
       if (!authClient) {
         setError('認証が必要です。ログインしてください。')
         return
       }
 
       const { supabase, user } = authClient
+      console.log('[DEBUG] Supabase操作開始', { user_id: user.id })  // ★追加
 
       // Convert simplified onboarding data to complete profile format required by isProfileComplete()
       const currentYear = new Date().getFullYear()
@@ -200,11 +212,16 @@ export default function OnboardingWizard() {
         updated_at: new Date().toISOString()
       }
 
+      console.log('[DEBUG] profile保存開始', profileData)  // ★追加
       const { error: profileError } = await supabase
         .from('user_profile')
         .upsert(profileData, { onConflict: 'user_id' })
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('[DEBUG] profile保存失敗', profileError)  // ★追加
+        throw profileError
+      }
+      console.log('[DEBUG] profile保存成功')  // ★追加
 
       // Create initial stats
       const statsData = {
@@ -218,12 +235,18 @@ export default function OnboardingWizard() {
         updated_at: new Date().toISOString()
       }
 
+      console.log('[DEBUG] stats保存開始', statsData)  // ★追加
       const { error: statsError } = await supabase
         .from('user_stats')
         .upsert(statsData, { onConflict: 'user_id' })
 
-      if (statsError) throw statsError
+      if (statsError) {
+        console.error('[DEBUG] stats保存失敗', statsError)  // ★追加
+        throw statsError
+      }
+      console.log('[DEBUG] stats保存成功')  // ★追加
 
+      console.log('[DEBUG] ダッシュボードへ遷移開始')  // ★追加
       router.push('/dashboard')
     } catch (err) {
       console.error('Onboarding error:', err)
@@ -346,7 +369,7 @@ export default function OnboardingWizard() {
               
               <button
                 onClick={() => handleAnswer(inputValue)}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
                 className="w-full min-h-[44px] bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {currentStep === totalSteps - 1 ? '設定完了' : '次へ'}
