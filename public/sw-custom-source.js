@@ -1,4 +1,45 @@
-// Custom Service Worker for notifications and analytics
+// Enhanced Service Worker for notifications, analytics, and aggressive cache management
+// Import cache version from external file (updated on each deployment)
+importScripts('/sw-version.js');
+
+// Use imported version constants
+const CACHE_VERSION = self.CACHE_VERSION || 'v3::' + Date.now();
+const CHUNK_CACHE_NAME = 'chunks-' + CACHE_VERSION;
+const STATIC_CACHE_NAME = 'static-' + CACHE_VERSION;
+
+// Force immediate activation to prevent stale chunk issues
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing new service worker with version:', CACHE_VERSION)
+  self.skipWaiting() // Immediately take control, bypassing waiting
+})
+
+// Aggressive cache cleanup - delete ALL caches that don't match current version
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new service worker with aggressive cache purge...')
+  
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      console.log('[SW] Found existing caches:', keys)
+      return Promise.all(
+        keys.map((key) => {
+          // Force delete ALL caches that don't start with current version
+          if (!key.startsWith(CACHE_VERSION)) {
+            console.log('[SW] Force deleting cache (version mismatch):', key)
+            return caches.delete(key)
+          } else {
+            console.log('[SW] Keeping cache (version match):', key)
+          }
+        })
+      )
+    }).then(() => {
+      console.log('[SW] Cache purge complete, claiming all clients...')
+    })
+  )
+  
+  self.clients.claim() // Take control of all clients immediately
+})
+
+// Custom notification handler
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'show-notification') {
     const { payload } = event.data
@@ -21,6 +62,22 @@ self.addEventListener('message', (event) => {
         }
       ]
     })
+  }
+  
+  // Handle manual cache refresh requests
+  if (event.data && event.data.type === 'refresh-cache') {
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (key.includes('chunks-') || key.includes('static-')) {
+              console.log('[SW] Manual cache refresh, deleting:', key)
+              return caches.delete(key)
+            }
+          })
+        )
+      )
+    )
   }
 })
 
