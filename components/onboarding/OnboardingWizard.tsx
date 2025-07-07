@@ -7,6 +7,7 @@ import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
 import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { useToastFallback } from '@/components/notifications/Toast'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
@@ -104,6 +105,7 @@ export default function OnboardingWizard() {
   const [validationError, setValidationError] = useState<string | null>(null)
   const router = useRouter()
   const { isOpen, openChat, closeChat } = useFuyouChat()
+  const { showToast, ToastContainer } = useToastFallback()
 
   const currentQuestion = questions[currentStep]
   const totalSteps = questions.length
@@ -175,21 +177,24 @@ export default function OnboardingWizard() {
   }
 
   const handleOnboardingComplete = async (finalData: OnboardingData) => {
-    console.log('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)  // ★追加
+    console.log('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)
     setIsLoading(true)
     setError(null)
 
     try {
+      console.log('[STEP-1] Supabase client作成開始')
       const authClient = await getAuthenticatedSupabaseClient()
-      console.log('[DEBUG] authClient取得完了', authClient ? 'success' : 'failed')  // ★追加
       if (!authClient) {
+        console.error('[ERROR] authClient取得失敗 - 認証が必要')
         setError('認証が必要です。ログインしてください。')
+        showToast('認証が必要です。ログインしてください。', 'error')
         return
       }
+      console.log('[STEP-1] Supabase client作成成功', { user_id: authClient.user.id })
 
       const { supabase, user } = authClient
-      console.log('[DEBUG] Supabase操作開始', { user_id: user.id })  // ★追加
 
+      console.log('[STEP-2] profile upsert開始')
       // Convert simplified onboarding data to complete profile format required by isProfileComplete()
       const currentYear = new Date().getFullYear()
       const profileData = {
@@ -212,17 +217,17 @@ export default function OnboardingWizard() {
         updated_at: new Date().toISOString()
       }
 
-      console.log('[DEBUG] profile保存開始', profileData)  // ★追加
       const { error: profileError } = await supabase
         .from('user_profile')
         .upsert(profileData, { onConflict: 'user_id' })
 
       if (profileError) {
-        console.error('[DEBUG] profile保存失敗', profileError)  // ★追加
+        console.error('[ERROR] profile upsert失敗', profileError)
         throw profileError
       }
-      console.log('[DEBUG] profile保存成功')  // ★追加
+      console.log('[STEP-2] profile upsert成功')
 
+      console.log('[STEP-3] stats upsert開始')
       // Create initial stats
       const statsData = {
         user_id: user.id,
@@ -235,23 +240,26 @@ export default function OnboardingWizard() {
         updated_at: new Date().toISOString()
       }
 
-      console.log('[DEBUG] stats保存開始', statsData)  // ★追加
       const { error: statsError } = await supabase
         .from('user_stats')
         .upsert(statsData, { onConflict: 'user_id' })
 
       if (statsError) {
-        console.error('[DEBUG] stats保存失敗', statsError)  // ★追加
+        console.error('[ERROR] stats upsert失敗', statsError)
         throw statsError
       }
-      console.log('[DEBUG] stats保存成功')  // ★追加
+      console.log('[STEP-3] stats upsert成功')
 
-      console.log('[DEBUG] ダッシュボードへ遷移開始')  // ★追加
-      router.push('/dashboard')
+      console.log('[STEP-4] router.push("/dashboard")')
+      router.replace('/dashboard')
+      console.log('[STEP-4] router.replace完了')
     } catch (err) {
-      console.error('Onboarding error:', err)
-      setError('設定の保存に失敗しました。もう一度お試しください。')
+      console.error('[FATAL] onboardingComplete 失敗', err)
+      const errorMessage = '設定の保存に失敗しました。もう一度お試しください。'
+      setError(errorMessage)
+      showToast(errorMessage, 'error')
     } finally {
+      console.log('[FINALLY] setIsLoading(false)')
       setIsLoading(false)
     }
   }
@@ -295,8 +303,10 @@ export default function OnboardingWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-md mx-auto">
+    <>
+      <ToastContainer />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+        <div className="max-w-md mx-auto">
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
@@ -406,7 +416,8 @@ export default function OnboardingWizard() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
