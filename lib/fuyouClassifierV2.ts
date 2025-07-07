@@ -8,7 +8,7 @@
  */
 
 import { UserProfile, UserMonthlyIncome } from '@/lib/supabase'
-import { ThresholdMap, DynamicThreshold, getActiveThresholds, createThresholdLabelsMap, convertToLegacyFormat } from '@/lib/thresholdRepo'
+import { ThresholdMap, getActiveThresholds, createThresholdLabelsMap, convertToLegacyFormat } from '@/lib/thresholdRepo'
 
 // Legacy threshold definitions (fallback/default)
 export const FUYOU_THRESHOLDS = {
@@ -219,7 +219,7 @@ export function calculateFuyouStatusV2(
   const labelsMap = dynamicThresholds ? createThresholdLabelsMap(dynamicThresholds) : undefined
   
   // 各閾値の状況を計算
-  const thresholds: Record<ThresholdKey, ThresholdStatus> = {} as any
+  const thresholds: Record<ThresholdKey, ThresholdStatus> = {} as Record<ThresholdKey, ThresholdStatus>
   applicableThresholds.forEach(thresholdKey => {
     thresholds[thresholdKey] = calculateThresholdStatus(
       thresholdKey,
@@ -401,7 +401,7 @@ export async function previewThresholdsForYear(year: number): Promise<{
         label: threshold.label
       }
     })
-    .filter(change => change !== null && change.difference !== 0) as any[]
+    .filter((change): change is NonNullable<typeof change> => change !== null && change.difference !== 0)
   
   return {
     currentThresholds,
