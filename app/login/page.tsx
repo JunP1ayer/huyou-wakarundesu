@@ -24,11 +24,13 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [showAlternative, setShowAlternative] = useState(false)
   const [error, setError] = useState('')
-  const [supabase] = useState(() => {
-    // Only create Supabase client on the client side
-    if (typeof window === 'undefined') return null
-    return createSupabaseClient()
-  })
+  const [supabase, setSupabase] = useState<ReturnType<typeof createSupabaseClient> | null>(null)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSupabase(createSupabaseClient())
+    }
+  }, [])
   const experimentId = 'default' // Default experiment ID
 
   // Auto-redirect if already authenticated

@@ -38,17 +38,8 @@ export default function AuthProvider({
   const [session, setSession] = useState<Session | null>(initialSession)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileComplete, setProfileComplete] = useState(false)
-  const [loading, setLoading] = useState(!initialSession)
-  const [supabase] = useState(() => {
-    // Use safe client creation to prevent SSR issues
-    if (typeof window === 'undefined') return null
-    try {
-      return createSupabaseClient()
-    } catch (error) {
-      console.error('Failed to initialize Supabase client in AuthProvider:', error)
-      return null
-    }
-  })
+  const [loading, setLoading] = useState(true) // Always start with loading true for consistency
+  const [supabase, setSupabase] = useState<ReturnType<typeof createSupabaseClient> | null>(null)
   
   const router = useRouter()
   const pathname = usePathname()
@@ -152,10 +143,23 @@ export default function AuthProvider({
     }
   }, [pathname, loading, router, user, profileComplete, session])
 
+  // Initialize Supabase client only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const client = createSupabaseClient()
+        setSupabase(client)
+      } catch (error) {
+        console.error('Failed to initialize Supabase client in AuthProvider:', error)
+        setLoading(false)
+        return
+      }
+    }
+  }, [])
+
   // Simplified authentication initialization
   useEffect(() => {
     if (!supabase) {
-      setLoading(false)
       return
     }
 

@@ -298,7 +298,7 @@ export const CacheWarmup = {
 }
 
 // 開発環境用: キャッシュ監視
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   // 5分ごとにキャッシュ統計をログ出力
   setInterval(() => {
     const stats = AppCache.getStats()

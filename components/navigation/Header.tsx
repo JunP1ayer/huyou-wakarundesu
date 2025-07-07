@@ -5,17 +5,19 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { createSupabaseClient } from '@/lib/supabase'
 import { LogIn, LogOut, User, Settings, Home } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function Header() {
   const { user, session } = useAuth()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [supabase] = useState(() => {
-    // Only create Supabase client on the client side
-    if (typeof window === 'undefined') return null
-    return createSupabaseClient()
-  })
+  const [supabase, setSupabase] = useState<ReturnType<typeof createSupabaseClient> | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSupabase(createSupabaseClient())
+    }
+  }, [])
 
   const handleLogout = async () => {
     if (!supabase) return

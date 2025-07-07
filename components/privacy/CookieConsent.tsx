@@ -11,6 +11,9 @@ export default function CookieConsent({ experimentId }: CookieConsentProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return
+    
     // Check if user has already made a choice
     const consent = localStorage.getItem('cookie-consent')
     if (!consent) {
