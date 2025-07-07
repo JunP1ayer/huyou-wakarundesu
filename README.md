@@ -77,7 +77,7 @@ This application fully implements Google's 7 design principles for world-class u
 - **A/B Testing**: Custom experimentation framework
 - **PWA**: Service Worker + Workbox for offline functionality
 
-## 🚀 Quick Start (Zero-to-Dev Onboarding)
+## 🚀 Quick Start (Zero-to-Dev Onboarding) v0.9.0
 
 **New Developer? Get started in under 1 minute:**
 
