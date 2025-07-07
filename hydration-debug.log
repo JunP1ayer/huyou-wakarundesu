@@ -1,0 +1,9 @@
+
+> fuyou-wakarundesu@0.1.0 predev
+> node scripts/check-env.js --quick
+
+
+> fuyou-wakarundesu@0.1.0 dev
+> next dev --turbopack --turbo --debug
+
+error: unknown option '--debug'

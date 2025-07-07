@@ -64,8 +64,8 @@ export async function GET() {
           },
         })
 
-        // 基本的な接続テスト
-        const { error } = await supabase.auth.getSession()
+        // 基本的な接続テスト - use getUser() for proper validation
+        const { error } = await supabase.auth.getUser()
         validation.connectivity.supabaseConnection = !error
         
         if (error) {

@@ -60,10 +60,23 @@ export async function getServerSession(): Promise<Session | null> {
       },
     })
     
-    const { data: { session }, error } = await supabase.auth.getSession()
+    // Use getUser() to validate the authentication first
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (error) {
-      console.error('🔴 SSR Session Error:', error.message)
+    if (userError) {
+      console.log('🔴 SSR User validation failed:', userError.message)
+      return null
+    }
+    
+    if (!user) {
+      return null
+    }
+    
+    // If user is authenticated, get the session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error('🔴 SSR Session Error:', sessionError.message)
       return null
     }
     

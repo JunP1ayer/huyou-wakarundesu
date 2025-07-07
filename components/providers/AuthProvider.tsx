@@ -164,16 +164,24 @@ export default function AuthProvider({
         logAuthEvent('auth_init', { pathname }, pathname)
         console.log('🚀 Simple: Initializing authentication')
         
-        // Use simple approach first
+        // Use getUser() instead of getSession() for proper authentication
         if (!initialSession) {
-          const { data: { session: currentSession } } = await supabase.auth.getSession()
-          setSession(currentSession)
-          setUser(currentSession?.user || null)
+          const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+          if (error) {
+            console.log('🔴 Auth: User validation failed:', error.message)
+            setSession(null)
+            setUser(null)
+          } else {
+            // If user is authenticated, get the current session
+            const { data: { session: currentSession } } = await supabase.auth.getSession()
+            setSession(currentSession)
+            setUser(currentUser)
           
-          if (currentSession?.user) {
-            const profileData = await fetchProfile(currentSession.user.id)
-            setProfile(profileData)
-            setProfileComplete(isProfileComplete(profileData))
+            if (currentUser) {
+              const profileData = await fetchProfile(currentUser.id)
+              setProfile(profileData)
+              setProfileComplete(isProfileComplete(profileData))
+            }
           }
         } else {
           // Use initial session
