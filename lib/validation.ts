@@ -79,10 +79,6 @@ export const FuyouValidationSchemas = {
     using_family_insurance: z.boolean({
       errorMap: () => ({ message: '質問2: 健康保険について選択してください' })
     }),
-    annual_income: ValidationRules.currencyJPY.refine(
-      (val) => val >= 0 && val <= 5_000_000,
-      { message: '年間収入は0円〜500万円の範囲で入力してください' }
-    ),
     weekly_hours: z.number()
       .min(0, '労働時間は0時間以上である必要があります')
       .max(40, '労働時間は40時間以下である必要があります')

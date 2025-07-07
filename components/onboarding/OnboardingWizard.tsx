@@ -12,8 +12,7 @@ interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
   under_103_last_year: boolean | null  // Q2: 昨年収入103万円以下か
   using_family_insurance: boolean | null  // Q3: 家族の健康保険使用か
-  annual_income: number | null  // Q4: 年間収入合計
-  weekly_hours: number | null  // Q5: 週労働時間
+  weekly_hours: number | null  // Q4: 週労働時間
   // Legacy fields for compatibility  
   birth_year?: number | null
   student_type?: string | null
@@ -42,7 +41,7 @@ const questions: QuestionConfig[] = [
   {
     id: 'is_student',
     step: 1,
-    title: 'Step 1/5 学生確認',
+    title: 'Step 1/4 学生確認',
     question: 'あなたは現在学生ですか？',
     description: '※適切な扶養判定のため、学生状況をお聞かせください',
     type: 'boolean' as const,
@@ -54,7 +53,7 @@ const questions: QuestionConfig[] = [
   {
     id: 'under_103_last_year',
     step: 2,
-    title: 'Step 2/5 収入の確認',
+    title: 'Step 2/4 収入の確認',
     question: '昨年のアルバイト収入は 103 万円以下でしたか？',
     description: '※扶養控除の判定に必要な情報です',
     type: 'boolean' as const,
@@ -66,7 +65,7 @@ const questions: QuestionConfig[] = [
   {
     id: 'using_family_insurance',
     step: 3,
-    title: 'Step 3/5 健康保険の確認',
+    title: 'Step 3/4 健康保険の確認',
     question: '親やご家族の健康保険証を使っていますか？',
     description: '※社会保険の扶養判定に必要な情報です',
     type: 'boolean' as const,
@@ -76,21 +75,9 @@ const questions: QuestionConfig[] = [
     ]
   },
   {
-    id: 'annual_income',
-    step: 4,
-    title: 'Step 4/5 年間収入の入力',
-    question: '1年間（4月〜翌3月）の収入合計を入力してください',
-    description: '※正確な扶養判定のため、見込み額を入力してください',
-    type: 'number' as const,
-    placeholder: '例: 800000',
-    suffix: '円',
-    min: 0,
-    max: 5000000
-  },
-  {
     id: 'weekly_hours',
-    step: 5,
-    title: 'Step 5/5 労働時間の入力',
+    step: 4,
+    title: 'Step 4/4 労働時間の入力',
     question: '1週間に平均どれくらい働いていますか？',
     description: '※社会保険加入要件の判定に使用します',
     type: 'number' as const,
@@ -107,7 +94,6 @@ export default function OnboardingWizard() {
     is_student: null,
     under_103_last_year: null,
     using_family_insurance: null,
-    annual_income: null,
     weekly_hours: null,
     fuyou_category: null,
     fuyou_limit: null
@@ -201,14 +187,12 @@ export default function OnboardingWizard() {
         student_type: finalData.is_student ? 'university' : 'other',
         support_type: finalData.using_family_insurance ? 'full' : 'none',
         insurance: finalData.using_family_insurance ? 'none' : 'national', // 'none' means family insurance
-        monthly_income_target: finalData.annual_income ? Math.round(finalData.annual_income / 12) : 85000,
+        monthly_income_target: 85000, // Default income target
         // Legacy fields
         is_student: finalData.is_student === true,
         weekly_hours: finalData.weekly_hours ?? 20,
         fuyou_line: calculateFuyouLine(finalData),
-        hourly_wage: finalData.annual_income && finalData.weekly_hours 
-          ? Math.round(finalData.annual_income / (finalData.weekly_hours * 52))
-          : 1200,
+        hourly_wage: 1200, // Default hourly wage
         profile_completed: true, // Mark as completed
         profile_completed_at: new Date().toISOString(),
         onboarding_step: 4, // Mark as fully completed
@@ -225,10 +209,10 @@ export default function OnboardingWizard() {
       // Create initial stats
       const statsData = {
         user_id: user.id,
-        ytd_income: finalData.annual_income || 0,
-        remaining: Math.max(0, profileData.fuyou_line - (finalData.annual_income || 0)),
+        ytd_income: 0, // Income will be fetched from bank API
+        remaining: profileData.fuyou_line,
         remaining_hours: finalData.weekly_hours && profileData.hourly_wage
-          ? Math.max(0, (profileData.fuyou_line - (finalData.annual_income || 0)) / profileData.hourly_wage)
+          ? Math.max(0, profileData.fuyou_line / profileData.hourly_wage)
           : 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

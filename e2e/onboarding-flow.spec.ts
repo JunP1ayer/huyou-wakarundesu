@@ -1,21 +1,30 @@
 /**
- * オンボーディングフロー E2Eテスト（新4問形式）
+ * オンボーディングフロー E2Eテスト（新4ステップ形式）
  * ユーザーが最初に利用する際の完全なフローをテスト
+ * 年間収入入力ステップを削除し、4ステップ構成に変更
  */
 
 import { test, expect, Page } from '@playwright/test'
 
-// ヘルパー関数：新4問形式のオンボーディング完了
+// ヘルパー関数：新4ステップ形式のオンボーディング完了（年間収入ステップ削除）
 async function completeOnboarding(page: Page, answers: {
+  is_student: boolean,
   under_103_last_year: boolean,
   using_family_insurance: boolean,
-  annual_income: string,
   weekly_hours: string
 }) {
   // オンボーディング開始
   await page.goto('/')
   
-  // 質問1: 昨年のアルバイト収入は 103 万円以下でしたか？
+  // 質問1: あなたは現在学生ですか？
+  await expect(page.locator('h2')).toContainText('あなたは現在学生ですか？')
+  if (answers.is_student) {
+    await page.click('text=はい、学生です')
+  } else {
+    await page.click('text=いいえ、学生ではありません')
+  }
+
+  // 質問2: 昨年のアルバイト収入は 103 万円以下でしたか？
   await expect(page.locator('h2')).toContainText('昨年のアルバイト収入は 103 万円以下でしたか？')
   if (answers.under_103_last_year) {
     await page.click('text=はい、103万円以下でした')
@@ -23,7 +32,7 @@ async function completeOnboarding(page: Page, answers: {
     await page.click('text=いいえ、103万円を超えていました')
   }
 
-  // 質問2: 親やご家族の健康保険証を使っていますか？
+  // 質問3: 親やご家族の健康保険証を使っていますか？
   await expect(page.locator('h2')).toContainText('親やご家族の健康保険証を使っていますか？')
   if (answers.using_family_insurance) {
     await page.click('text=はい、家族の保険証を使っています')
@@ -31,18 +40,13 @@ async function completeOnboarding(page: Page, answers: {
     await page.click('text=いいえ、自分で加入しています')
   }
 
-  // 質問3: 1年間（4月〜翌3月）の収入合計を入力してください
-  await expect(page.locator('h2')).toContainText('1年間（4月〜翌3月）の収入合計を入力してください')
-  await page.fill('input[type="number"]', answers.annual_income)
-  await page.click('text=次へ')
-
   // 質問4: 1週間に平均どれくらい働いていますか？
   await expect(page.locator('h2')).toContainText('1週間に平均どれくらい働いていますか？')
   await page.fill('input[type="number"]', answers.weekly_hours)
   await page.click('text=設定完了')
 }
 
-test.describe('オンボーディングフロー（新4問形式）', () => {
+test.describe('オンボーディングフロー（新4ステップ形式）', () => {
   test.beforeEach(async ({ page }) => {
     // テスト前のセットアップ（認証等は環境に応じて設定）
     await page.goto('/')
@@ -50,9 +54,9 @@ test.describe('オンボーディングフロー（新4問形式）', () => {
 
   test('学生ユーザーの標準フロー', async ({ page }) => {
     await completeOnboarding(page, {
+      is_student: true,
       under_103_last_year: true,
       using_family_insurance: true,
-      annual_income: '800000',
       weekly_hours: '20'
     })
 
@@ -65,9 +69,9 @@ test.describe('オンボーディングフロー（新4問形式）', () => {
 
   test('一般ユーザーの標準フロー', async ({ page }) => {
     await completeOnboarding(page, {
+      is_student: false,
       under_103_last_year: false,
       using_family_insurance: false,
-      annual_income: '1200000',
       weekly_hours: '25'
     })
 
@@ -78,12 +82,12 @@ test.describe('オンボーディングフロー（新4問形式）', () => {
     await expect(page.locator('text*=103万円')).toBeVisible()
   })
 
-  test('106万円の壁に近いユーザー', async ({ page }) => {
+  test('フルタイムに近いユーザー', async ({ page }) => {
     await completeOnboarding(page, {
+      is_student: true,
       under_103_last_year: true,
       using_family_insurance: true,
-      annual_income: '1000000',
-      weekly_hours: '22'
+      weekly_hours: '35'
     })
 
     // ダッシュボードに遷移
@@ -97,13 +101,13 @@ test.describe('オンボーディングフロー（新4問形式）', () => {
     await page.goto('/')
     
     // 質問1を回答
-    await page.click('text=はい、103万円以下でした')
+    await page.click('text=はい、学生です')
     
     // 質問2で戻るボタンをクリック
     await page.click('text=戻る')
     
     // 質問1に戻ることを確認
-    await expect(page.locator('h2')).toContainText('昨年のアルバイト収入は 103 万円以下でしたか？')
+    await expect(page.locator('h2')).toContainText('あなたは現在学生ですか？')
   })
 
   test('プログレスバーの動作確認', async ({ page }) => {
@@ -113,38 +117,45 @@ test.describe('オンボーディングフロー（新4問形式）', () => {
     await expect(page.locator('text=1/4')).toBeVisible()
     
     // 質問1を回答
-    await page.click('text=はい、103万円以下でした')
+    await page.click('text=はい、学生です')
     
     // 2/4になることを確認
     await expect(page.locator('text=2/4')).toBeVisible()
     
     // 質問2を回答
-    await page.click('text=はい、家族の保険証を使っています')
+    await page.click('text=はい、103万円以下でした')
     
     // 3/4になることを確認
     await expect(page.locator('text=3/4')).toBeVisible()
+    
+    // 質問3を回答
+    await page.click('text=はい、家族の保険証を使っています')
+    
+    // 4/4になることを確認
+    await expect(page.locator('text=4/4')).toBeVisible()
   })
 
   test('数値入力のバリデーション確認', async ({ page }) => {
     await page.goto('/')
     
-    // 質問1, 2を回答して質問3に到達
+    // 質問1, 2, 3を回答して質問4に到達
+    await page.click('text=はい、学生です')
     await page.click('text=はい、103万円以下でした')
     await page.click('text=はい、家族の保険証を使っています')
     
     // 無効な値（負の数）を入力
-    await page.fill('input[type="number"]', '-1000')
-    await page.click('text=次へ')
+    await page.fill('input[type="number"]', '-5')
+    await page.click('text=設定完了')
     
     // エラーメッセージが表示されることを確認
     await expect(page.locator('text=0以上の値を入力してください')).toBeVisible()
     
     // 有効な値を入力
-    await page.fill('input[type="number"]', '800000')
-    await page.click('text=次へ')
+    await page.fill('input[type="number"]', '20')
+    await page.click('text=設定完了')
     
-    // 次の質問に進むことを確認
-    await expect(page.locator('h2')).toContainText('1週間に平均どれくらい働いていますか？')
+    // ダッシュボードに遷移することを確認
+    await expect(page).toHaveURL('/dashboard')
   })
 
   test('「わからない？」チャット機能', async ({ page }) => {
@@ -160,17 +171,18 @@ test.describe('オンボーディングフロー（新4問形式）', () => {
   test('空の入力値での送信防止', async ({ page }) => {
     await page.goto('/')
     
-    // 質問1, 2を回答して質問3に到達
+    // 質問1, 2, 3を回答して質問4に到達
+    await page.click('text=はい、学生です')
     await page.click('text=はい、103万円以下でした')
     await page.click('text=はい、家族の保険証を使っています')
     
-    // 空の状態で次へボタンをクリック
-    const nextButton = page.locator('text=次へ')
-    await expect(nextButton).toBeDisabled()
+    // 空の状態で設定完了ボタンをクリック
+    const submitButton = page.locator('text=設定完了')
+    await expect(submitButton).toBeDisabled()
     
     // 値を入力すると有効になることを確認
-    await page.fill('input[type="number"]', '800000')
-    await expect(nextButton).toBeEnabled()
+    await page.fill('input[type="number"]', '20')
+    await expect(submitButton).toBeEnabled()
   })
 })
 
@@ -186,15 +198,16 @@ test.describe('エラーハンドリング', () => {
   test('大きすぎる値の入力制限', async ({ page }) => {
     await page.goto('/')
     
-    // 質問1, 2を回答して質問3に到達
+    // 質問1, 2, 3を回答して質問4に到達
+    await page.click('text=はい、学生です')
     await page.click('text=はい、103万円以下でした')
     await page.click('text=はい、家族の保険証を使っています')
     
-    // 500万円を超える値を入力
-    await page.fill('input[type="number"]', '6000000')
-    await page.click('text=次へ')
+    // 40時間を超える値を入力
+    await page.fill('input[type="number"]', '50')
+    await page.click('text=設定完了')
     
     // エラーメッセージが表示されることを確認
-    await expect(page.locator('text=5000000以下の値を入力してください')).toBeVisible()
+    await expect(page.locator('text=40以下の値を入力してください')).toBeVisible()
   })
 })
