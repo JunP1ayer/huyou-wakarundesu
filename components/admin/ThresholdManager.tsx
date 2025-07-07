@@ -1,18 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { AlertTriangle, Check, Edit2, Save, X, RefreshCw, Database, Wifi, WifiOff } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { AlertTriangle, Check, Edit2, X, RefreshCw, Database, Wifi, WifiOff } from 'lucide-react'
 import { 
   getActiveThresholds,
-  checkThresholdSystemHealth,
   invalidateThresholdCache,
   DynamicThreshold,
   ThresholdMap 
 } from '@/lib/thresholdRepo'
 import { 
   getThresholdSystemStatus,
-  previewThresholdsForYear,
-  analyzeThresholdImpact,
   formatCurrencyV2 
 } from '@/lib/fuyouClassifierV2'
 import { useToastFallback } from '@/components/notifications/Toast'
@@ -44,11 +41,7 @@ export default function ThresholdManager() {
   const availableYears = [2024, 2025, 2026]
   const currentYear = new Date().getFullYear()
 
-  useEffect(() => {
-    loadData()
-  }, [selectedYear])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       // Load thresholds for selected year
@@ -66,7 +59,11 @@ export default function ThresholdManager() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedYear, showToast])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleRefresh = async () => {
     setRefreshing(true)

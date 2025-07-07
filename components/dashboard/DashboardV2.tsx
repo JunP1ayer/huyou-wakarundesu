@@ -7,12 +7,10 @@ import {
   getThresholdSystemStatus,
   FuyouStatusV2, 
   formatCurrencyV2,
-  getThresholdName,
-  FUYOU_THRESHOLDS 
+  getThresholdName
 } from '@/lib/fuyouClassifierV2'
 import { getMonthlyIncomeData } from '@/lib/income-manager'
-import { checkThresholdSystemHealth } from '@/lib/thresholdRepo'
-import { AlertTriangle, Settings, Banknote, Clock, Info, TrendingUp, Calendar } from 'lucide-react'
+import { AlertTriangle, Settings, Banknote, Info, Calendar } from 'lucide-react'
 import ExportCsvButton from '@/components/ExportCsvButton'
 import RequestPermission from '@/components/notifications/RequestPermission'
 import { useToastFallback } from '@/components/notifications/Toast'

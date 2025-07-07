@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Calendar, DollarSign, Clock, Check, X } from 'lucide-react'
 import { saveMonthlyIncome, getMonthlyIncomeData, getCurrentYearMonth } from '@/lib/income-manager'
 import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
@@ -36,17 +36,17 @@ export default function PaydayIncomeInput({ onSave, className = '' }: PaydayInco
   const [userId, setUserId] = useState<string | null>(null)
   const { showToast, ToastContainer } = useToastFallback()
 
-  useEffect(() => {
-    initializeAuth()
-  }, [])
-
-  const initializeAuth = async () => {
+  const initializeAuth = useCallback(async () => {
     const authClient = await getAuthenticatedSupabaseClient()
     if (authClient) {
       setUserId(authClient.user.id)
       loadExistingEntries(authClient.user.id)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    initializeAuth()
+  }, [initializeAuth])
 
   const loadExistingEntries = async (userId: string) => {
     try {
