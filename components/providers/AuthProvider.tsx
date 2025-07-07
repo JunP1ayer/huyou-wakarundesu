@@ -162,7 +162,7 @@ export default function AuthProvider({
     const initializeAuth = async () => {
       try {
         logAuthEvent('auth_init', { pathname }, pathname)
-        console.log('🚀 Simple: Initializing authentication')
+        console.log('[DEBUG] AuthProvider: Starting authentication initialization')
         
         // Use getUser() instead of getSession() for proper authentication
         if (!initialSession) {
@@ -201,6 +201,7 @@ export default function AuthProvider({
         logAuthError('auth_init_failed', error, { pathname }, pathname)
         console.error('🔴 Simple: Auth initialization failed:', error)
       } finally {
+        console.log('[DEBUG] AuthProvider: Setting loading to false')
         setLoading(false)
       }
     }
@@ -214,6 +215,7 @@ export default function AuthProvider({
           setProfile(profileData)
           setProfileComplete(isProfileComplete(profileData))
         }
+        console.log('[DEBUG] AuthProvider: Initial session processing complete, setting loading to false')
         setLoading(false)
       }
       initialize()

@@ -28,24 +28,53 @@ export default function MonthlyIncomeInput() {
 
   // Load monthly data function
   const loadMonthlyData = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      console.log('[DEBUG] loadMonthlyData: user not available')
+      setLoading(false)
+      return
+    }
 
+    console.log('[DEBUG] loadMonthlyData: starting data fetch for user', user.id)
     setLoading(true)
+    setError(null)
+    
     try {
+      console.log('[DEBUG] getMonthlyIncomeData: calling with', { userId: user.id, currentYear })
       const data = await getMonthlyIncomeData(user.id, currentYear)
+      console.log('[DEBUG] getMonthlyIncomeData: received data', data.length, 'records')
       setMonthlyData(data)
     } catch (error) {
-      setError('データの読み込みに失敗しました')
-      console.error(error)
+      console.error('[ERROR] loadMonthlyData failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'データの読み込みに失敗しました'
+      setError(errorMessage)
+      // Set empty data to prevent infinite loading on error
+      setMonthlyData([])
     } finally {
+      console.log('[DEBUG] loadMonthlyData: setting loading false')
       setLoading(false)
     }
   }, [user, currentYear])
 
-  // Load monthly data effect
+  // Load monthly data effect with timeout safety
   useEffect(() => {
     if (user) {
+      console.log('[DEBUG] useEffect: Triggering loadMonthlyData')
       loadMonthlyData()
+      
+      // Safety timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.log('[ERROR] Data loading timeout - forcing loading to false')
+        setLoading(false)
+        setError('データの読み込みがタイムアウトしました。ページを再読み込みしてください。')
+      }, 30000) // 30 second timeout
+      
+      return () => {
+        console.log('[DEBUG] useEffect cleanup: clearing timeout')
+        clearTimeout(timeoutId)
+      }
+    } else {
+      console.log('[DEBUG] useEffect: No user, setting loading to false')
+      setLoading(false)
     }
   }, [user, currentYear, loadMonthlyData])
 

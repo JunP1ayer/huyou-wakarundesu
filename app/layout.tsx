@@ -72,6 +72,7 @@ export default async function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning     // ← 追加：サーバ/クライアント class 差分を抑制
       >
         {/* Privacy-first Google Analytics with consent mode */}
         {GA_ID && (
