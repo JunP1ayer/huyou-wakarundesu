@@ -1,4 +1,40 @@
-// Custom Service Worker for notifications and analytics
+// Enhanced Service Worker for notifications, analytics, and cache management
+const CACHE_VERSION = 'v2::' + (new Date().getTime()) // Dynamic versioning
+const CHUNK_CACHE_NAME = 'chunks-' + CACHE_VERSION
+const STATIC_CACHE_NAME = 'static-' + CACHE_VERSION
+
+// Force immediate activation to prevent stale chunk issues
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing new service worker...')
+  self.skipWaiting() // Immediately take control
+})
+
+// Clean up old caches when activating
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new service worker...')
+  
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.map((key) => {
+          // Delete old cache versions
+          if (!key.startsWith(CACHE_VERSION) && (
+            key.includes('chunks-') || 
+            key.includes('static-') ||
+            key.includes('offlineCache')
+          )) {
+            console.log('[SW] Deleting old cache:', key)
+            return caches.delete(key)
+          }
+        })
+      )
+    )
+  )
+  
+  self.clients.claim() // Take control of all clients immediately
+})
+
+// Custom notification handler
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'show-notification') {
     const { payload } = event.data
@@ -21,6 +57,22 @@ self.addEventListener('message', (event) => {
         }
       ]
     })
+  }
+  
+  // Handle manual cache refresh requests
+  if (event.data && event.data.type === 'refresh-cache') {
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (key.includes('chunks-') || key.includes('static-')) {
+              console.log('[SW] Manual cache refresh, deleting:', key)
+              return caches.delete(key)
+            }
+          })
+        )
+      )
+    )
   }
 })
 
