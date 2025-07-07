@@ -31,9 +31,13 @@ function validateSupabaseConfig(): void {
 
 // Browser client singleton - prevents multiple GoTrueClient instances
 export function createSupabaseClient(): SupabaseClient {
-  // Server-side rendering check
+  // Server-side rendering check with improved error handling
   if (typeof window === 'undefined') {
-    throw new Error('createSupabaseClient() can only be called on the client side')
+    console.warn('createSupabaseClient() called on server side - this should be avoided')
+    // Return a minimal client for server-side compatibility instead of throwing
+    return createBrowserClient(supabaseUrl!, supabaseAnonKey!, {
+      auth: { persistSession: false }
+    })
   }
 
   // Validate configuration
@@ -56,11 +60,29 @@ export function createSupabaseClient(): SupabaseClient {
       httpOnly: false, // Must be false for browser client
     },
     isSingleton: true,
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
   })
   
   // Store singleton instance
   window.__supabase_singleton = client
   return client
+}
+
+// Safe client creation for SSR environments
+export function createSupabaseClientSafe(): SupabaseClient | null {
+  try {
+    if (typeof window === 'undefined') {
+      return null // Return null on server-side
+    }
+    return createSupabaseClient()
+  } catch (error) {
+    console.error('Failed to create Supabase client:', error)
+    return null
+  }
 }
 
 // Helper function for authenticated operations - AUTHENTICATION REQUIRED

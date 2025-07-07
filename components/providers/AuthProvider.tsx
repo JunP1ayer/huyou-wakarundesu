@@ -40,9 +40,14 @@ export default function AuthProvider({
   const [profileComplete, setProfileComplete] = useState(false)
   const [loading, setLoading] = useState(!initialSession)
   const [supabase] = useState(() => {
-    // Only create Supabase client on the client side
+    // Use safe client creation to prevent SSR issues
     if (typeof window === 'undefined') return null
-    return createSupabaseClient()
+    try {
+      return createSupabaseClient()
+    } catch (error) {
+      console.error('Failed to initialize Supabase client in AuthProvider:', error)
+      return null
+    }
   })
   
   const router = useRouter()
@@ -106,9 +111,15 @@ export default function AuthProvider({
     setProfileComplete(complete)
   }
 
-  // Simplified route protection to avoid redirect loops
+  // Improved route protection with better stability
   const handleRouteProtection = useCallback(() => {
-    console.log('🛡️ Simple route protection', { pathname, loading, hasUser: !!user, profileComplete })
+    console.log('🛡️ Route protection check', { 
+      pathname, 
+      loading, 
+      hasUser: !!user, 
+      profileComplete,
+      hasSession: !!session 
+    })
     
     // If loading, don't redirect yet
     if (loading) {
@@ -117,22 +128,29 @@ export default function AuthProvider({
     }
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
+    const isAuthCallbackRoute = pathname.startsWith('/auth/callback')
     
-    // Simple logic to avoid loops
-    if (!user && !isPublicRoute) {
+    // Don't redirect during auth callback
+    if (isAuthCallbackRoute) {
+      console.log('🔄 Skipping redirect - auth callback in progress')
+      return
+    }
+    
+    // Simple logic to avoid loops with additional safeguards
+    if (!user && !isPublicRoute && !isAuthCallbackRoute) {
       console.log('🔄 Redirecting to login - no user')
       router.push('/login')
     } else if (user && !profileComplete && pathname === '/dashboard') {
       console.log('🔄 Redirecting to onboarding - incomplete profile')
       router.push('/')
-    } else if (user && profileComplete && pathname === '/') {
+    } else if (user && profileComplete && pathname === '/' && !loading) {
       console.log('🔄 Redirecting to dashboard - profile complete')
       router.push('/dashboard')
-    } else if (user && pathname === '/login') {
+    } else if (user && pathname === '/login' && !loading) {
       console.log('🔄 Redirecting authenticated user away from login')
       router.push(profileComplete ? '/dashboard' : '/')
     }
-  }, [pathname, loading, router, user, profileComplete])
+  }, [pathname, loading, router, user, profileComplete, session])
 
   // Simplified authentication initialization
   useEffect(() => {

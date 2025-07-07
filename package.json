@@ -2,8 +2,14 @@
   "name": "fuyou-wakarundesu",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.20.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
+    "setup": "bash scripts/setup-local-env.sh",
     "dev": "next dev --turbopack",
+    "predev": "node scripts/check-env.js --quick",
     "build": "next build",
     "start": "next start",
     "lint": "next lint --max-warnings 50",
