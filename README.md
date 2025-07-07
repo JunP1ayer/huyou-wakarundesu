@@ -195,6 +195,34 @@ The `npm run setup` command will:
    npm run perf:audit
    ```
 
+### 🐛 Debug Mode
+
+For development and troubleshooting, you can enable verbose debug logging:
+
+```bash
+# Enable debug mode with verbose console logging
+NEXT_PUBLIC_DEBUG=true npm run dev
+```
+
+**Debug Features:**
+- **Step-by-step logging**: Traces onboarding completion flow
+- **Database operation logging**: Shows Supabase query details and results
+- **Authentication flow logging**: Tracks user login and session management
+- **Component lifecycle logging**: Shows loading states and data transitions
+
+**Debug Log Examples:**
+```
+[STEP] Supabase client作成開始
+[DEBUG] getMonthlyIncomeData: querying user_monthly_income table
+[DEBUG] AuthProvider: Setting loading to false
+[ERROR] loadMonthlyData failed: Network error
+```
+
+**Production Safety:**
+- Debug logs are automatically disabled in production builds
+- Set `NEXT_PUBLIC_DEBUG=false` or omit the variable for production
+- Only visible in browser console during development
+
 ### Production Deployment
 
 1. **Deploy to Vercel**:
