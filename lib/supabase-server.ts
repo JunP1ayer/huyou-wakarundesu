@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
 
 // Server client for server components and API routes (user-based)
 export async function createSupabaseServerClient() {
@@ -13,7 +12,15 @@ export async function createSupabaseServerClient() {
     return null
   }
   
+  // Only use next/headers in server context
+  if (typeof window !== 'undefined') {
+    console.warn('createSupabaseServerClient called in client context, use createSupabaseClientSafe instead')
+    return null
+  }
+  
   try {
+    // Dynamic import to avoid bundling in client
+    const { cookies } = await import('next/headers')
     const cookieStore = await cookies()
     
     return createServerClient(
@@ -57,6 +64,11 @@ export function createSupabaseServerClientReadOnly() {
   
   if (!url || !key) {
     console.error('Supabase server client: Missing environment variables')
+    return null
+  }
+  
+  // In client context, return null and let thresholdRepo use client-side client
+  if (typeof window !== 'undefined') {
     return null
   }
   
