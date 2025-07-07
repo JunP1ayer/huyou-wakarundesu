@@ -77,6 +77,32 @@ This application fully implements Google's 7 design principles for world-class u
 - **A/B Testing**: Custom experimentation framework
 - **PWA**: Service Worker + Workbox for offline functionality
 
+## 🚀 Quick Start (Zero-to-Dev Onboarding)
+
+**New Developer? Get started in under 1 minute:**
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd fuyou-wakarundesu
+
+# 2. Automated setup (installs dependencies + configures environment)
+npm run setup
+
+# 3. Start development server
+npm run dev
+```
+
+The `npm run setup` command will:
+- Install all dependencies automatically
+- Pull environment variables from Vercel (if you have access)
+- Or create `.env.local` template for manual configuration
+- Validate your environment is ready for development
+
+**That's it!** Open [http://localhost:3000](http://localhost:3000) to see the app.
+
+> **Need more control?** See the [detailed setup instructions](#-setup-instructions) below for manual configuration.
+
 ## 📐 Key Components
 
 ### 1. Onboarding Wizard
