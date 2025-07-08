@@ -11,9 +11,8 @@ import { debugLog } from '@/lib/debug'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
-  under_103_last_year: boolean | null  // Q2: 昨年収入103万円以下か
-  using_family_insurance: boolean | null  // Q3: 家族の健康保険使用か
-  weekly_hours: number | null  // Q4: 週労働時間
+  using_family_insurance: boolean | null  // Q2: 家族の健康保険使用か
+  is_over_20h_contract: boolean | null  // Q3: 週20時間以上の契約か
   // Legacy fields for compatibility  
   birth_year?: number | null
   student_type?: string | null
@@ -42,7 +41,7 @@ const questions: QuestionConfig[] = [
   {
     id: 'is_student',
     step: 1,
-    title: 'Step 1/4 学生確認',
+    title: 'Step 1/3 学生確認',
     question: 'あなたは現在学生ですか？',
     description: '※適切な扶養判定のため、学生状況をお聞かせください',
     type: 'boolean' as const,
@@ -52,21 +51,9 @@ const questions: QuestionConfig[] = [
     ]
   },
   {
-    id: 'under_103_last_year',
-    step: 2,
-    title: 'Step 2/4 収入の確認',
-    question: '昨年のアルバイト収入は 103 万円以下でしたか？',
-    description: '※扶養控除の判定に必要な情報です',
-    type: 'boolean' as const,
-    options: [
-      { value: true, label: 'はい、103万円以下でした' },
-      { value: false, label: 'いいえ、103万円を超えていました' }
-    ]
-  },
-  {
     id: 'using_family_insurance',
-    step: 3,
-    title: 'Step 3/4 健康保険の確認',
+    step: 2,
+    title: 'Step 2/3 健康保険の確認',
     question: '親やご家族の健康保険証を使っていますか？',
     description: '※社会保険の扶養判定に必要な情報です',
     type: 'boolean' as const,
@@ -76,16 +63,16 @@ const questions: QuestionConfig[] = [
     ]
   },
   {
-    id: 'weekly_hours',
-    step: 4,
-    title: 'Step 4/4 労働時間の入力',
-    question: '1週間に平均どれくらい働いていますか？',
-    description: '※社会保険加入要件の判定に使用します',
-    type: 'number' as const,
-    placeholder: '例: 20',
-    suffix: '時間',
-    min: 0,
-    max: 40
+    id: 'is_over_20h_contract',
+    step: 3,
+    title: 'Step 3/3 労働契約の確認',
+    question: 'あなたの "契約上の" 週あたり労働時間は 20 時間以上ですか？',
+    description: '※繁忙期だけ超える場合は「いいえ」で OK。継続的に超えるなら「はい」を選択してください。',
+    type: 'boolean' as const,
+    options: [
+      { value: true, label: 'はい、20時間以上です' },
+      { value: false, label: 'いいえ、20時間未満です' }
+    ]
   }
 ]
 
@@ -93,9 +80,8 @@ export default function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<OnboardingData>({
     is_student: null,
-    under_103_last_year: null,
     using_family_insurance: null,
-    weekly_hours: null,
+    is_over_20h_contract: null,
     fuyou_category: null,
     fuyou_limit: null
   })
@@ -184,8 +170,9 @@ export default function OnboardingWizard() {
     try {
       const payload = {
         isStudent: finalData.is_student === true,
-        projectedIncome: 1000000, // Default 100万円見込み
-        isDependent: finalData.using_family_insurance === true
+        annualIncome: 1000000, // Default 100万円見込み (Moneytree API で取得後に置き換え予定)
+        isDependent: finalData.using_family_insurance === true,
+        isOver20hContract: finalData.is_over_20h_contract === true
       }
 
       const res = await fetch('/api/profile/complete', {

@@ -13,17 +13,23 @@ export async function POST(request: NextRequest) {
 
   const input = await request.json() as {
     isStudent: boolean
-    projectedIncome: number
+    annualIncome: number
     isDependent: boolean
+    isOver20hContract: boolean
   }
 
-  const allowance = calcAllowance(input)
+  const allowance = calcAllowance({
+    isStudent: input.isStudent,
+    projectedIncome: input.annualIncome,
+    isDependent: input.isDependent
+  })
 
   // profile, stats をまとめて upsert (例)
   await supabase.from('user_profile').upsert({
     user_id: session.user.id,
     is_student: input.isStudent,
-    projected_income: input.projectedIncome,
+    annual_income: input.annualIncome,
+    is_over_20h: input.isOver20hContract,
     fuyou_line: allowance * 10000, // Convert from 万円 to 円
     profile_completed: true,
     profile_completed_at: new Date().toISOString(),
