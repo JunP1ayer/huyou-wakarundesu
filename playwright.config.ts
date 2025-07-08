@@ -79,16 +79,6 @@ export default defineConfig({
       },
     },
 
-    {
-      name: 'firefox-mobile',
-      use: { 
-        ...devices['Galaxy S8'],
-        browserName: 'firefox',
-        contextOptions: {
-          locale: 'ja-JP'
-        }
-      },
-    },
 
     /* デスクトップ版（参考用） */
     {
