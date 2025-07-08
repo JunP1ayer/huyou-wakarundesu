@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
@@ -8,7 +8,6 @@ import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useToastFallback } from '@/components/notifications/Toast'
 import { debugLog } from '@/lib/debug'
-import { createSupabaseClient } from '@/lib/supabase'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
@@ -90,38 +89,12 @@ export default function OnboardingWizard() {
   const [error, setError] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
   const { isOpen, openChat, closeChat } = useFuyouChat()
   const { showToast, ToastContainer } = useToastFallback()
 
   const currentQuestion = questions[currentStep]
   const totalSteps = questions.length
-
-  // Get user ID on component mount
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      try {
-        const supabase = createSupabaseClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setUserId(user.id)
-          debugLog('[DEBUG] ユーザーID取得成功', user.id)
-        } else {
-          debugLog('[DEBUG] ユーザー未認証 - 一時IDを生成')
-          // Generate temporary ID for unauthenticated users
-          const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          setUserId(tempId)
-        }
-      } catch (error) {
-        debugLog('[ERROR] ユーザーID取得失敗', error)
-        // Fallback to temporary ID
-        const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        setUserId(tempId)
-      }
-    }
-    getCurrentUser()
-  }, [])
 
   const validateNumberInput = (value: string, question: QuestionConfig): string | null => {
     if (!value.trim()) {
@@ -194,15 +167,8 @@ export default function OnboardingWizard() {
     setIsLoading(true)
     setError(null)
 
-    if (!userId) {
-      setError('ユーザーIDの取得に失敗しました。ページを再読み込みしてください。')
-      setIsLoading(false)
-      return
-    }
-
     try {
       const payload = {
-        userId: userId,
         isStudent: finalData.is_student === true,
         annualIncome: 1000000, // Default 100万円見込み (Moneytree API で取得後に置き換え予定)
         isDependent: finalData.using_family_insurance === true,

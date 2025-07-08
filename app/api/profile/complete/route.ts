@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { calcAllowance } from '@/lib/calcAllowance'
 
-// サービスロールキーで認証不要に呼び出せるクライアントを生成
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
+export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
+  // Supabase クライアントをリクエストの Cookie から初期化
+  const supabase = createRouteHandlerClient({ cookies })
+  
+  // セッション取得
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
 
   const input = await request.json() as {
-    userId: string
     isStudent: boolean
     annualIncome: number
     isDependent: boolean
@@ -25,9 +28,9 @@ export async function POST(request: NextRequest) {
     isDependent: input.isDependent
   })
 
-  // profile, stats をまとめて upsert (例)
-  await supabase.from('user_profile').upsert({
-    user_id: input.userId,
+  // profile, stats をまとめて upsert (認証済みユーザーIDを使用)
+  const { error } = await supabase.from('user_profile').upsert({
+    user_id: session.user.id,
     is_student: input.isStudent,
     annual_income: input.annualIncome,
     is_over_20h: input.isOver20hContract,
@@ -37,5 +40,10 @@ export async function POST(request: NextRequest) {
     updated_at: new Date().toISOString()
   })
 
-  return NextResponse.json({ allowance })
+  if (error) {
+    console.error('Profile upsert error:', error)
+    return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true, allowance })
 }
