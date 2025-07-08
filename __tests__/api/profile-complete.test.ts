@@ -3,9 +3,15 @@
  * セキュリティ、エッジケース、型安全性を検証
  */
 
+/**
+ * @jest-environment node
+ */
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/profile/complete/route'
 import type { ProfileCompleteApiResponse, ApiErrorResponse, ProfileCompleteResponse } from '@/types/api'
+
+// Mock globals
+global.Request = global.Request || class Request {}
 
 // Supabase モック
 const mockSupabaseAuth = {

@@ -179,6 +179,7 @@ export default function OnboardingWizard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        credentials: 'include', // 重要: クッキー（セッション）を含めてリクエスト
       })
       
       const responseData = await res.json()

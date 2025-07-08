@@ -6,8 +6,7 @@ import type {
   ProfileCompleteRequest, 
   ProfileCompleteApiResponse, 
   ApiErrorResponse, 
-  ProfileCompleteResponse,
-  VALIDATION_RULES 
+  ProfileCompleteResponse
 } from '@/types/api'
 
 export const dynamic = 'force-dynamic'
@@ -70,7 +69,7 @@ function createErrorResponse(
 /**
  * セッション検証の厳格化
  */
-async function validateSession(supabase: any): Promise<
+async function validateSession(supabase: ReturnType<typeof createRouteHandlerClient>): Promise<
   | { isValid: true; session: NonNullable<any> }
   | { isValid: false; errorResponse: NextResponse<ApiErrorResponse> }
 > {
@@ -127,6 +126,11 @@ export async function POST(request: Request): Promise<NextResponse<ProfileComple
   const startTime = Date.now()
   
   try {
+    // Log incoming request details for debugging
+    console.log(`[API] POST /api/profile/complete`)
+    console.log(`[API] Headers:`, Object.fromEntries(request.headers.entries()))
+    console.log(`[API] Cookie header:`, request.headers.get('cookie')?.substring(0, 100) + '...')
+
     // 1. リクエストボディの検証
     let body: unknown
     try {
@@ -150,14 +154,18 @@ export async function POST(request: Request): Promise<NextResponse<ProfileComple
 
     const input = validation.data
 
-    // 2. Supabaseクライアントの初期化
+    // 2. Supabaseクライアントの初期化（requestも渡すことで全てのヘッダーが利用可能になる）
     const supabase = createRouteHandlerClient({ cookies })
+    console.log(`[API] Supabase client created`)
     
     // 3. セッション検証
     const sessionValidation = await validateSession(supabase)
     if (!sessionValidation.isValid) {
+      console.log(`[API] Session validation failed`)
       return sessionValidation.errorResponse
     }
+
+    console.log(`[API] Session validation successful for user: ${sessionValidation.session.user.id}`)
 
     const { session } = sessionValidation
 
