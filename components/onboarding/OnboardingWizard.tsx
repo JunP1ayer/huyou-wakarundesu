@@ -181,19 +181,53 @@ export default function OnboardingWizard() {
         body: JSON.stringify(payload),
       })
       
+      const responseData = await res.json()
+      
       if (!res.ok) {
-        const errorData = await res.json()
-        throw errorData
+        // 新しいAPIエラーレスポンス形式に対応
+        if (responseData.code === 'UNAUTHORIZED' || responseData.code === 'SESSION_EXPIRED') {
+          // 認証エラーの場合はログインページにリダイレクト
+          if (responseData.redirectTo) {
+            console.log('🔄 認証エラー - ログインページへリダイレクト')
+            router.replace(responseData.redirectTo)
+            return
+          }
+        }
+        
+        throw responseData
       }
 
-      const { allowance } = await res.json()
-      console.log('✅ allowance', allowance)
-
-      console.log('✅ 全保存処理完了 - 結果ページへ移動中')
-      router.replace(`/result?allowance=${allowance}`)
+      // 成功レスポンス（新しい形式）の処理
+      if (responseData.success && responseData.allowance) {
+        console.log('✅ allowance', responseData.allowance)
+        console.log('✅ 全保存処理完了 - 結果ページへ移動中')
+        router.replace(`/result?allowance=${responseData.allowance}`)
+      } else {
+        throw { error: 'Invalid response format', code: 'INTERNAL_ERROR' }
+      }
     } catch (e: unknown) {
       console.error('❌ 保存処理でエラー発生', e)
-      const errorMessage = (e as { error?: string })?.error ?? '設定の保存に失敗しました。もう一度お試しください。'
+      
+      // 新しいエラー形式に対応
+      const errorData = e as { error?: string; code?: string; details?: string }
+      let errorMessage = errorData.error ?? '設定の保存に失敗しました。もう一度お試しください。'
+      
+      // エラー種別に応じたメッセージ
+      switch (errorData.code) {
+        case 'VALIDATION_ERROR':
+          errorMessage = '入力データに問題があります。確認してください。'
+          break
+        case 'SESSION_EXPIRED':
+          errorMessage = 'セッションが期限切れです。再度ログインしてください。'
+          break
+        case 'DATABASE_ERROR':
+          errorMessage = 'データの保存に失敗しました。しばらく待ってから再試行してください。'
+          break
+        case 'INTERNAL_ERROR':
+          errorMessage = 'システムエラーが発生しました。サポートにお問い合わせください。'
+          break
+      }
+      
       setError(errorMessage)
       showToast(errorMessage, 'error')
     } finally {

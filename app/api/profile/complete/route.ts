@@ -2,79 +2,241 @@ import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { calcAllowance } from '@/lib/calcAllowance'
+import type { 
+  ProfileCompleteRequest, 
+  ProfileCompleteApiResponse, 
+  ApiErrorResponse, 
+  ProfileCompleteResponse,
+  VALIDATION_RULES 
+} from '@/types/api'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: Request) {
+/**
+ * セキュアな入力値検証
+ */
+function validateInput(body: unknown): { isValid: true; data: ProfileCompleteRequest } | { isValid: false; error: string } {
+  if (!body || typeof body !== 'object') {
+    return { isValid: false, error: 'Request body must be a valid JSON object' }
+  }
+
+  const data = body as Record<string, unknown>
+  
+  // 必須フィールドの検証
+  const requiredFields = ['isStudent', 'annualIncome', 'isDependent', 'isOver20hContract'] as const
+  for (const field of requiredFields) {
+    if (!(field in data)) {
+      return { isValid: false, error: `Missing required field: ${field}` }
+    }
+  }
+
+  // 年収の範囲検証
+  const annualIncome = Number(data.annualIncome)
+  if (isNaN(annualIncome) || annualIncome < 0 || annualIncome > 50_000_000) {
+    return { isValid: false, error: 'Annual income must be between 0 and 50,000,000 yen' }
+  }
+
+  return {
+    isValid: true,
+    data: {
+      isStudent: Boolean(data.isStudent),
+      annualIncome: annualIncome,
+      isDependent: Boolean(data.isDependent),
+      isOver20hContract: Boolean(data.isOver20hContract)
+    }
+  }
+}
+
+/**
+ * 統一されたエラーレスポンス生成
+ */
+function createErrorResponse(
+  error: string, 
+  code: ApiErrorResponse['code'], 
+  status: number,
+  details?: string,
+  redirectTo?: string
+): NextResponse<ApiErrorResponse> {
+  const response: ApiErrorResponse = {
+    error,
+    code,
+    ...(details && { details }),
+    ...(redirectTo && { redirectTo })
+  }
+  
+  return NextResponse.json(response, { status })
+}
+
+/**
+ * セッション検証の厳格化
+ */
+async function validateSession(supabase: any): Promise<
+  | { isValid: true; session: NonNullable<any> }
+  | { isValid: false; errorResponse: NextResponse<ApiErrorResponse> }
+> {
   try {
-    // リクエストの Cookie を渡して Supabase を初期化
-    const supabase = createRouteHandlerClient({ cookies })
-    
-    // セッション取得 - エラーハンドリングを強化
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
     if (sessionError) {
-      console.error('Session error:', sessionError)
-      return NextResponse.json({ error: 'Session validation failed' }, { status: 401 })
+      console.error('[AUTH] Session validation error:', sessionError.message)
+      
+      // セッション期限切れ vs その他のエラーを区別
+      const isExpired = sessionError.message?.includes('expired') || sessionError.message?.includes('invalid')
+      
+      return {
+        isValid: false,
+        errorResponse: createErrorResponse(
+          isExpired ? 'Session expired' : 'Session validation failed',
+          isExpired ? 'SESSION_EXPIRED' : 'UNAUTHORIZED',
+          401,
+          undefined,
+          '/login'
+        )
+      }
     }
     
-    if (!session || !session.user) {
-      console.error('No valid session found')
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (!session?.user?.id) {
+      console.error('[AUTH] No valid session or user found')
+      return {
+        isValid: false,
+        errorResponse: createErrorResponse(
+          'Authentication required',
+          'UNAUTHORIZED',
+          401,
+          undefined,
+          '/login'
+        )
+      }
     }
 
-    // 正常時はここでボディを読み込み、保存＆計算ロジックを実行
-    const body = await request.json()
+    return { isValid: true, session }
+  } catch (error) {
+    console.error('[AUTH] Unexpected session validation error:', error)
+    return {
+      isValid: false,
+      errorResponse: createErrorResponse(
+        'Authentication service unavailable',
+        'INTERNAL_ERROR',
+        503
+      )
+    }
+  }
+}
+
+export async function POST(request: Request): Promise<NextResponse<ProfileCompleteApiResponse>> {
+  const startTime = Date.now()
+  
+  try {
+    // 1. リクエストボディの検証
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return createErrorResponse(
+        'Invalid JSON in request body',
+        'VALIDATION_ERROR',
+        400
+      )
+    }
+
+    const validation = validateInput(body)
+    if (!validation.isValid) {
+      return createErrorResponse(
+        validation.error,
+        'VALIDATION_ERROR',
+        400
+      )
+    }
+
+    const input = validation.data
+
+    // 2. Supabaseクライアントの初期化
+    const supabase = createRouteHandlerClient({ cookies })
     
-    // 入力データの検証
-    const input = {
-      isStudent: Boolean(body.isStudent),
-      annualIncome: Number(body.annualIncome) || 1000000, // Default 100万円
-      isDependent: Boolean(body.isDependent),
-      isOver20hContract: Boolean(body.isOver20hContract)
+    // 3. セッション検証
+    const sessionValidation = await validateSession(supabase)
+    if (!sessionValidation.isValid) {
+      return sessionValidation.errorResponse
     }
 
-    // 扶養限度額の計算
-    const calculatedValue = calcAllowance({
-      isStudent: input.isStudent,
-      projectedIncome: input.annualIncome,
-      isDependent: input.isDependent
-    })
+    const { session } = sessionValidation
 
-    // プロフィール情報をデータベースに保存
+    // 4. ビジネスロジック: 扶養限度額計算
+    let calculatedValue: number
+    try {
+      calculatedValue = calcAllowance({
+        isStudent: input.isStudent,
+        projectedIncome: input.annualIncome,
+        isDependent: input.isDependent
+      })
+    } catch (error) {
+      console.error('[CALC] Allowance calculation error:', error)
+      return createErrorResponse(
+        'Failed to calculate allowance',
+        'INTERNAL_ERROR',
+        500
+      )
+    }
+
+    // 5. データベース保存
+    const profilePayload = {
+      user_id: session.user.id,
+      is_student: input.isStudent,
+      annual_income: input.annualIncome,
+      is_over_20h: input.isOver20hContract,
+      fuyou_line: calculatedValue * 10000, // Convert from 万円 to 円
+      profile_completed: true,
+      profile_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
     const { data: profileData, error: profileError } = await supabase
       .from('user_profile')
-      .upsert({
-        user_id: session.user.id,
-        is_student: input.isStudent,
-        annual_income: input.annualIncome,
-        is_over_20h: input.isOver20hContract,
-        fuyou_line: calculatedValue * 10000, // Convert from 万円 to 円
-        profile_completed: true,
-        profile_completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .upsert(profilePayload)
+      .select('user_id, is_student, annual_income, is_over_20h, fuyou_line, profile_completed, profile_completed_at, updated_at')
+      .single()
 
     if (profileError) {
-      console.error('Profile upsert error:', profileError)
-      return NextResponse.json({ 
-        error: 'Failed to save profile', 
-        details: profileError.message 
-      }, { status: 500 })
+      console.error('[DB] Profile upsert error:', profileError.message, 'Code:', profileError.code)
+      
+      // データベース特有のエラーハンドリング
+      const isPermissionError = profileError.message?.includes('permission') || profileError.code === 'PGRST301'
+      
+      return createErrorResponse(
+        'Failed to save profile',
+        isPermissionError ? 'UNAUTHORIZED' : 'DATABASE_ERROR',
+        isPermissionError ? 403 : 500,
+        process.env.NODE_ENV === 'development' ? profileError.message : undefined
+      )
     }
 
-    // 成功レスポンス
-    return NextResponse.json({ 
-      success: true, 
+    // 6. 成功レスポンス
+    const duration = Date.now() - startTime
+    console.log(`[API] Profile complete successful for user ${session.user.id} in ${duration}ms`)
+
+    const response: ProfileCompleteResponse = {
+      success: true,
       allowance: calculatedValue,
       profile: profileData
+    }
+
+    return NextResponse.json(response, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'X-Response-Time': `${duration}ms`
+      }
     })
 
   } catch (error) {
-    console.error('Unexpected error in profile complete API:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    const duration = Date.now() - startTime
+    console.error(`[API] Unexpected error in profile complete API (${duration}ms):`, error)
+    
+    return createErrorResponse(
+      'Internal server error',
+      'INTERNAL_ERROR',
+      500,
+      process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
+    )
   }
 }
