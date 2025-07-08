@@ -2,13 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
 import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
 import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useToastFallback } from '@/components/notifications/Toast'
-import { debugLog, debugStep, debugError } from '@/lib/debug'
+import { debugLog } from '@/lib/debug'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
@@ -183,95 +182,39 @@ export default function OnboardingWizard() {
     setError(null)
 
     try {
-      debugStep('Supabase client作成開始')
-      const authClient = await getAuthenticatedSupabaseClient()
-      if (!authClient) {
-        debugError('[ERROR] authClient取得失敗 - 認証が必要')
-        setError('認証が必要です。ログインしてください。')
-        showToast('認証が必要です。ログインしてください。', 'error')
-        return
-      }
-      debugStep('Supabase client作成成功', { user_id: authClient.user.id })
-
-      const { supabase, user } = authClient
-
-      debugStep('profile upsert開始')
-      // Convert simplified onboarding data to complete profile format required by isProfileComplete()
-      const currentYear = new Date().getFullYear()
-      const profileData = {
-        user_id: user.id,
-        // Required fields for isProfileComplete()
-        birth_year: currentYear - 20, // Assume typical student age
-        student_type: finalData.is_student ? 'university' : 'other',
-        support_type: finalData.using_family_insurance ? 'full' : 'none',
-        insurance: finalData.using_family_insurance ? 'none' : 'national', // 'none' means family insurance
-        monthly_income_target: 85000, // Default income target
-        // Legacy fields
-        is_student: finalData.is_student === true,
-        weekly_hours: finalData.weekly_hours ?? 20,
-        fuyou_line: calculateFuyouLine(finalData),
-        hourly_wage: 1200, // Default hourly wage
-        profile_completed: true, // Mark as completed
-        profile_completed_at: new Date().toISOString(),
-        onboarding_step: 4, // Mark as fully completed
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const payload = {
+        isStudent: finalData.is_student === true,
+        projectedIncome: 1000000, // Default 100万円見込み
+        isDependent: finalData.using_family_insurance === true
       }
 
-      const { error: profileError } = await supabase
-        .from('user_profile')
-        .upsert(profileData, { onConflict: 'user_id' })
-
-      if (profileError) {
-        debugError('[ERROR] profile upsert失敗', profileError)
-        throw profileError
-      }
-      debugStep('profile upsert成功')
-
-      debugStep('stats upsert開始')
-      // Create initial stats
-      const statsData = {
-        user_id: user.id,
-        ytd_income: 0, // Income will be fetched from bank API
-        remaining: profileData.fuyou_line,
-        remaining_hours: finalData.weekly_hours && profileData.hourly_wage
-          ? Math.max(0, profileData.fuyou_line / profileData.hourly_wage)
-          : 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const res = await fetch('/api/profile/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw errorData
       }
 
-      const { error: statsError } = await supabase
-        .from('user_stats')
-        .upsert(statsData, { onConflict: 'user_id' })
+      const { allowance } = await res.json()
+      console.log('✅ allowance', allowance)
 
-      if (statsError) {
-        debugError('[ERROR] stats upsert失敗', statsError)
-        throw statsError
-      }
-      debugStep('stats upsert成功')
-
-      debugStep('router.push("/dashboard")')
-      router.replace('/dashboard')
-      debugStep('router.replace完了')
-    } catch (err) {
-      debugError('[FATAL] onboardingComplete 失敗', err)
-      const errorMessage = '設定の保存に失敗しました。もう一度お試しください。'
+      console.log('✅ 全保存処理完了 - 結果ページへ移動中')
+      router.replace(`/result?allowance=${allowance}`)
+    } catch (e: unknown) {
+      console.error('❌ 保存処理でエラー発生', e)
+      const errorMessage = (e as { error?: string })?.error ?? '設定の保存に失敗しました。もう一度お試しください。'
       setError(errorMessage)
       showToast(errorMessage, 'error')
     } finally {
-      debugLog('[FINALLY] setIsLoading(false)')
+      console.log('✅ setIsLoading(false) - スピナー閉じる')
       setIsLoading(false)
     }
   }
 
-  const calculateFuyouLine = (data: OnboardingData): number => {
-    // Simple logic: if student and using family insurance, use 130万 line
-    if (data.is_student && data.using_family_insurance) {
-      return 1300000 // 130万円
-    }
-    return 1030000 // 103万円 (default)
-  }
 
   const handleChatComplete = (result: FuyouClassificationResult) => {
     setData(prev => ({
