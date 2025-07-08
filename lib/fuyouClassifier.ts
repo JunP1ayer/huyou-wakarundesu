@@ -12,7 +12,7 @@ export function classifyFuyou(
   answers: AnswerMap, 
   isStudent: boolean = true
 ): FuyouClassificationResult {
-  const { estIncome, inParentIns, weeklyHours, month88k } = answers;
+  const { estIncome, inParentIns, isOver20hContract, month88k } = answers;
 
   // 103万円の壁（所得税扶養控除）
   if (typeof estIncome === 'number' && estIncome < 1_030_000) {
@@ -27,8 +27,7 @@ export function classifyFuyou(
   if (
     typeof estIncome === 'number' && 
     estIncome < 1_060_000 && 
-    typeof weeklyHours === 'number' && 
-    weeklyHours < 20 &&
+    isOver20hContract === false &&
     isStudent
   ) {
     return {

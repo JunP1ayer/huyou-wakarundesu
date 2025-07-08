@@ -29,7 +29,7 @@ export async function classifyFuyouWithAI(
   answers: {
     estIncome: number | null
     inParentIns: boolean | null
-    weeklyHours: number | null
+    isOver20hContract: boolean | null
     month88k: boolean | null
   },
   isStudent: boolean
@@ -54,7 +54,7 @@ export async function classifyFuyouWithAI(
 入力データ:
 - 年収見込み: ${answers.estIncome}円
 - 親の健康保険に加入: ${answers.inParentIns ? 'はい' : 'いいえ'}
-- 週労働時間: ${answers.weeklyHours}時間
+- 週20時間以上の契約: ${answers.isOver20hContract ? 'はい' : 'いいえ'}
 - 月8.8万円以上稼ぐ月があるか: ${answers.month88k ? 'はい' : 'いいえ'}
 - 学生かどうか: ${isStudent ? 'はい' : 'いいえ'}
 

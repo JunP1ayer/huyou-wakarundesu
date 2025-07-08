@@ -24,7 +24,7 @@ export default function UnknownFuyouChat({
   const [answers, setAnswers] = useState<AnswerMap>({
     estIncome: null,
     inParentIns: null,
-    weeklyHours: null,
+    isOver20hContract: null,
     month88k: null
   })
   const [inputValue, setInputValue] = useState('')
@@ -41,7 +41,7 @@ export default function UnknownFuyouChat({
       setAnswers({
         estIncome: null,
         inParentIns: null,
-        weeklyHours: null,
+        isOver20hContract: null,
         month88k: null
       })
       setInputValue('')
@@ -96,7 +96,7 @@ export default function UnknownFuyouChat({
             maskedAnswers: {
               hasIncome: newAnswers.estIncome !== null,
               hasInsurance: newAnswers.inParentIns !== null,
-              hasHours: newAnswers.weeklyHours !== null,
+              hasHours: newAnswers.isOver20hContract !== null,
               hasMonthlyLimit: newAnswers.month88k !== null
             }
           }

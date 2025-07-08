@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         // Mask sensitive data
         hasEstIncome: answers.estIncome !== null,
         hasInsuranceInfo: answers.inParentIns !== null,
-        hasHoursInfo: answers.weeklyHours !== null,
+        hasHoursInfo: answers.isOver20hContract !== null,
         hasMonthlyInfo: answers.month88k !== null
       }
     })

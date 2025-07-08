@@ -11,10 +11,9 @@ export const questions = [
     type: 'boolean' 
   },
   { 
-    id: 'weeklyHours', 
-    text: 'アルバイトの週平均労働時間は？', 
-    type: 'number', 
-    unit: '時間' 
+    id: 'isOver20hContract', 
+    text: '週20時間以上の労働契約ですか？', 
+    type: 'boolean' 
   },
   { 
     id: 'month88k', 

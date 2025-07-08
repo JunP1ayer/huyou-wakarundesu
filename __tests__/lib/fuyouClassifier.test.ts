@@ -6,11 +6,11 @@
 import { classifyFuyou, calculateRemaining, AnswerMap } from '@/lib/fuyouClassifier'
 
 // TODO: 新しい AnswerMap フォーマットに対応する必要がある
-// 現在の実装では estIncome, inParentIns, weeklyHours, month88k を使用
+// 現在の実装では estIncome, inParentIns, isOver20hContract, month88k を使用
 const baseAnswers: AnswerMap = {
   estIncome: 1000000,
   inParentIns: true,
-  weeklyHours: 15,
+  isOver20hContract: false,
   month88k: false
 }
 
