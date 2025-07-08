@@ -69,6 +69,16 @@ const nextConfig = {
   // Removed rewrites - manifest.json is served as static file from /public
   async headers() {
     return [
+      // Aggressive no-cache for Next.js static chunks to completely prevent stale chunk errors
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store', // Force no caching in dev AND production
+          },
+        ],
+      },
       {
         source: '/:all*(js|css)',
         headers: [

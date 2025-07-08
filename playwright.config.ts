@@ -40,6 +40,16 @@ export default defineConfig({
     /* テストの高速化 */
     actionTimeout: 10000,
     navigationTimeout: 30000,
+
+    /* ブラウザ起動オプション（キャッシュ無効化でChunkLoadError回避） */
+    launchOptions: {
+      args: [
+        '--disable-application-cache',
+        '--disable-web-security',
+        '--disable-dev-shm-usage',
+        '--no-sandbox'
+      ]
+    },
   },
 
   /* プロジェクト設定（異なるブラウザ・デバイス） */

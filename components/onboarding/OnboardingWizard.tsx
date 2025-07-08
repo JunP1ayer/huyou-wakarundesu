@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthenticatedSupabaseClient } from '@/lib/supabase'
 import { useFuyouChat } from '@/hooks/useFuyouChat'
 import UnknownFuyouChat from '@/components/chat/UnknownFuyouChat'
 import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useToastFallback } from '@/components/notifications/Toast'
+import { debugLog } from '@/lib/debug'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
@@ -132,10 +132,10 @@ export default function OnboardingWizard() {
   }
 
   const handleAnswer = (value: boolean | string | number) => {
-    console.log('[DEBUG] handleAnswer 呼ばれた', { value, currentStep, totalSteps, isLoading })  // ★追加
+    debugLog('[DEBUG] handleAnswer 呼ばれた', { value, currentStep, totalSteps, isLoading })
     
     if (isLoading) {
-      console.log('[DEBUG] 既に処理中のため無視')  // ★追加
+      debugLog('[DEBUG] 既に処理中のため無視')
       return
     }
     
@@ -155,11 +155,11 @@ export default function OnboardingWizard() {
     setData(newData)
 
     if (currentStep < totalSteps - 1) {
-      console.log('[DEBUG] 次のステップへ移動', currentStep + 1)  // ★追加
+      debugLog('[DEBUG] 次のステップへ移動', currentStep + 1)
       setCurrentStep(currentStep + 1)
       setInputValue('')
     } else {
-      console.log('[DEBUG] 最終ステップ完了 - handleOnboardingComplete呼び出し')  // ★追加
+      debugLog('[DEBUG] 最終ステップ完了 - handleOnboardingComplete呼び出し')
       handleOnboardingComplete(newData)
     }
   }
@@ -177,100 +177,44 @@ export default function OnboardingWizard() {
   }
 
   const handleOnboardingComplete = async (finalData: OnboardingData) => {
-    console.log('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)
+    debugLog('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)
     setIsLoading(true)
     setError(null)
 
     try {
-      console.log('[STEP-1] Supabase client作成開始')
-      const authClient = await getAuthenticatedSupabaseClient()
-      if (!authClient) {
-        console.error('[ERROR] authClient取得失敗 - 認証が必要')
-        setError('認証が必要です。ログインしてください。')
-        showToast('認証が必要です。ログインしてください。', 'error')
-        return
-      }
-      console.log('[STEP-1] Supabase client作成成功', { user_id: authClient.user.id })
-
-      const { supabase, user } = authClient
-
-      console.log('[STEP-2] profile upsert開始')
-      // Convert simplified onboarding data to complete profile format required by isProfileComplete()
-      const currentYear = new Date().getFullYear()
-      const profileData = {
-        user_id: user.id,
-        // Required fields for isProfileComplete()
-        birth_year: currentYear - 20, // Assume typical student age
-        student_type: finalData.is_student ? 'university' : 'other',
-        support_type: finalData.using_family_insurance ? 'full' : 'none',
-        insurance: finalData.using_family_insurance ? 'none' : 'national', // 'none' means family insurance
-        monthly_income_target: 85000, // Default income target
-        // Legacy fields
-        is_student: finalData.is_student === true,
-        weekly_hours: finalData.weekly_hours ?? 20,
-        fuyou_line: calculateFuyouLine(finalData),
-        hourly_wage: 1200, // Default hourly wage
-        profile_completed: true, // Mark as completed
-        profile_completed_at: new Date().toISOString(),
-        onboarding_step: 4, // Mark as fully completed
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const payload = {
+        isStudent: finalData.is_student === true,
+        projectedIncome: 1000000, // Default 100万円見込み
+        isDependent: finalData.using_family_insurance === true
       }
 
-      const { error: profileError } = await supabase
-        .from('user_profile')
-        .upsert(profileData, { onConflict: 'user_id' })
-
-      if (profileError) {
-        console.error('[ERROR] profile upsert失敗', profileError)
-        throw profileError
-      }
-      console.log('[STEP-2] profile upsert成功')
-
-      console.log('[STEP-3] stats upsert開始')
-      // Create initial stats
-      const statsData = {
-        user_id: user.id,
-        ytd_income: 0, // Income will be fetched from bank API
-        remaining: profileData.fuyou_line,
-        remaining_hours: finalData.weekly_hours && profileData.hourly_wage
-          ? Math.max(0, profileData.fuyou_line / profileData.hourly_wage)
-          : 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const res = await fetch('/api/profile/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw errorData
       }
 
-      const { error: statsError } = await supabase
-        .from('user_stats')
-        .upsert(statsData, { onConflict: 'user_id' })
+      const { allowance } = await res.json()
+      console.log('✅ allowance', allowance)
 
-      if (statsError) {
-        console.error('[ERROR] stats upsert失敗', statsError)
-        throw statsError
-      }
-      console.log('[STEP-3] stats upsert成功')
-
-      console.log('[STEP-4] router.push("/dashboard")')
-      router.replace('/dashboard')
-      console.log('[STEP-4] router.replace完了')
-    } catch (err) {
-      console.error('[FATAL] onboardingComplete 失敗', err)
-      const errorMessage = '設定の保存に失敗しました。もう一度お試しください。'
+      console.log('✅ 全保存処理完了 - 結果ページへ移動中')
+      router.replace(`/result?allowance=${allowance}`)
+    } catch (e: unknown) {
+      console.error('❌ 保存処理でエラー発生', e)
+      const errorMessage = (e as { error?: string })?.error ?? '設定の保存に失敗しました。もう一度お試しください。'
       setError(errorMessage)
       showToast(errorMessage, 'error')
     } finally {
-      console.log('[FINALLY] setIsLoading(false)')
+      console.log('✅ setIsLoading(false) - スピナー閉じる')
       setIsLoading(false)
     }
   }
 
-  const calculateFuyouLine = (data: OnboardingData): number => {
-    // Simple logic: if student and using family insurance, use 130万 line
-    if (data.is_student && data.using_family_insurance) {
-      return 1300000 // 130万円
-    }
-    return 1030000 // 103万円 (default)
-  }
 
   const handleChatComplete = (result: FuyouClassificationResult) => {
     setData(prev => ({
