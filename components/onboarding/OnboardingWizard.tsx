@@ -8,6 +8,7 @@ import { FuyouClassificationResult } from '@/lib/questionSchema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useToastFallback } from '@/components/notifications/Toast'
 import { debugLog } from '@/lib/debug'
+import AuthErrorBoundary from '@/components/auth/AuthErrorBoundary'
 
 interface OnboardingData {
   is_student: boolean | null  // Q1: 学生かどうか
@@ -162,8 +163,8 @@ export default function OnboardingWizard() {
     }
   }
 
-  const handleOnboardingComplete = async (finalData: OnboardingData) => {
-    debugLog('[DEBUG] handleOnboardingComplete 呼ばれた', finalData)
+  const handleOnboardingComplete = async (finalData: OnboardingData, retryCount = 0) => {
+    debugLog('[DEBUG] handleOnboardingComplete 呼ばれた', { finalData, retryCount })
     setIsLoading(true)
     setError(null)
 
@@ -175,51 +176,115 @@ export default function OnboardingWizard() {
         isOver20hContract: finalData.is_over_20h_contract === true
       }
 
+      console.log('[DEBUG] Sending request with payload:', payload)
+      console.log('[DEBUG] Request headers will include credentials')
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
       const res = await fetch('/api/profile/complete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Request-ID': `onboarding-${Date.now()}-${retryCount}`
+        },
         body: JSON.stringify(payload),
         credentials: 'include', // 重要: クッキー（セッション）を含めてリクエスト
+        signal: controller.signal
       })
       
+      clearTimeout(timeoutId)
+      console.log('[DEBUG] Response received:', { status: res.status, ok: res.ok })
+      
       const responseData = await res.json()
+      console.log('[DEBUG] Response data:', responseData)
       
       if (!res.ok) {
-        // 新しいAPIエラーレスポンス形式に対応
+        // Handle specific error cases
         if (responseData.code === 'UNAUTHORIZED' || responseData.code === 'SESSION_EXPIRED') {
-          // 認証エラーの場合はログインページにリダイレクト
+          console.log('🔄 認証エラー - ログインページへリダイレクト')
           if (responseData.redirectTo) {
-            console.log('🔄 認証エラー - ログインページへリダイレクト')
             router.replace(responseData.redirectTo)
             return
+          } else {
+            router.replace('/login')
+            return
           }
+        }
+        
+        // Handle network/temporary errors with retry logic
+        if (res.status >= 500 && retryCount < 2) {
+          console.log(`🔄 Server error (${res.status}) - retrying in 2 seconds (attempt ${retryCount + 1}/3)`)
+          showToast(`サーバーエラーが発生しました。再試行中... (${retryCount + 1}/3)`, 'error')
+          
+          setTimeout(() => {
+            handleOnboardingComplete(finalData, retryCount + 1)
+          }, 2000)
+          return
         }
         
         throw responseData
       }
 
-      // 成功レスポンス（新しい形式）の処理
-      if (responseData.success && responseData.allowance) {
+      // Success response validation
+      if (responseData.success && typeof responseData.allowance === 'number') {
         console.log('✅ allowance', responseData.allowance)
         console.log('✅ 全保存処理完了 - 結果ページへ移動中')
-        router.replace(`/result?allowance=${responseData.allowance}`)
+        
+        // Add slight delay for better UX
+        setTimeout(() => {
+          router.replace(`/result?allowance=${responseData.allowance}`)
+        }, 500)
       } else {
-        throw { error: 'Invalid response format', code: 'INTERNAL_ERROR' }
+        console.error('❌ Invalid response format:', responseData)
+        throw { 
+          error: 'Invalid response format', 
+          code: 'INTERNAL_ERROR',
+          details: 'Response missing required fields'
+        }
       }
     } catch (e: unknown) {
       console.error('❌ 保存処理でエラー発生', e)
       
-      // 新しいエラー形式に対応
+      // Handle different error types
+      if (e instanceof TypeError && e.message.includes('fetch')) {
+        // Network error
+        if (retryCount < 2) {
+          console.log(`🔄 Network error - retrying in 3 seconds (attempt ${retryCount + 1}/3)`)
+          showToast(`ネットワークエラーが発生しました。再試行中... (${retryCount + 1}/3)`, 'error')
+          
+          setTimeout(() => {
+            handleOnboardingComplete(finalData, retryCount + 1)
+          }, 3000)
+          return
+        } else {
+          setError('ネットワーク接続に問題があります。インターネット接続を確認してください。')
+          showToast('ネットワーク接続に問題があります', 'error')
+          setIsLoading(false)
+          return
+        }
+      }
+      
+      if (e.name === 'AbortError') {
+        setError('リクエストがタイムアウトしました。再試行してください。')
+        showToast('リクエストがタイムアウトしました', 'error')
+        setIsLoading(false)
+        return
+      }
+      
+      // API error responses
       const errorData = e as { error?: string; code?: string; details?: string }
       let errorMessage = errorData.error ?? '設定の保存に失敗しました。もう一度お試しください。'
       
-      // エラー種別に応じたメッセージ
+      // Enhanced error messages
       switch (errorData.code) {
         case 'VALIDATION_ERROR':
           errorMessage = '入力データに問題があります。確認してください。'
           break
         case 'SESSION_EXPIRED':
           errorMessage = 'セッションが期限切れです。再度ログインしてください。'
+          // Auto-redirect to login after showing message
+          setTimeout(() => router.replace('/login'), 3000)
           break
         case 'DATABASE_ERROR':
           errorMessage = 'データの保存に失敗しました。しばらく待ってから再試行してください。'
@@ -227,6 +292,16 @@ export default function OnboardingWizard() {
         case 'INTERNAL_ERROR':
           errorMessage = 'システムエラーが発生しました。サポートにお問い合わせください。'
           break
+        default:
+          if (retryCount < 1) {
+            console.log(`🔄 Unknown error - retrying once more`)
+            showToast('エラーが発生しました。再試行中...', 'error')
+            
+            setTimeout(() => {
+              handleOnboardingComplete(finalData, retryCount + 1)
+            }, 2000)
+            return
+          }
       }
       
       setError(errorMessage)
@@ -269,7 +344,7 @@ export default function OnboardingWizard() {
   }
 
   return (
-    <>
+    <AuthErrorBoundary>
       <ToastContainer />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
         <div className="max-w-md mx-auto">
@@ -384,6 +459,6 @@ export default function OnboardingWizard() {
         )}
         </div>
       </div>
-    </>
+    </AuthErrorBoundary>
   )
 }

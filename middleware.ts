@@ -3,24 +3,48 @@ import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
+  const { pathname } = req.nextUrl
   
-  // Add CORS headers for API routes
-  if (req.nextUrl.pathname.startsWith('/api/')) {
+  // Enhanced CORS headers for API routes with environment-specific origins
+  if (pathname.startsWith('/api/')) {
+    const origin = req.headers.get('origin')
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'https://huyou-wakarundesu.vercel.app',
+      ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])
+    ]
+    
+    const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || 
+                          (origin && origin.includes('huyou-wakarundesu') && origin.includes('.vercel.app'))
+    
     res.headers.set('Access-Control-Allow-Credentials', 'true')
-    res.headers.set('Access-Control-Allow-Origin', req.headers.get('origin') || '*')
+    res.headers.set('Access-Control-Allow-Origin', isAllowedOrigin ? (origin || '*') : 'null')
     res.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT,OPTIONS')
-    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With')
+    
+    // Security headers for API routes
+    res.headers.set('X-Content-Type-Options', 'nosniff')
+    res.headers.set('X-Frame-Options', 'DENY')
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   }
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res
+    return new NextResponse(null, { status: 200, headers: res.headers })
   }
 
-  // Log cookies for debugging (remove in production)
-  const cookieHeader = req.headers.get('cookie')
-  console.log(`[MIDDLEWARE] ${req.method} ${req.nextUrl.pathname}`)
-  console.log(`[MIDDLEWARE] Cookies: ${cookieHeader ? cookieHeader.substring(0, 100) + '...' : 'None'}`)
+  // Enhanced logging (conditional based on environment)
+  const shouldLog = process.env.NODE_ENV === 'development' || 
+                   process.env.VERCEL_ENV === 'preview' ||
+                   pathname.startsWith('/api/')
+  
+  if (shouldLog) {
+    const cookieHeader = req.headers.get('cookie')
+    console.log(`[MIDDLEWARE] ${req.method} ${pathname} - ${new Date().toISOString()}`)
+    console.log(`[MIDDLEWARE] Origin: ${req.headers.get('origin') || 'none'}`)
+    console.log(`[MIDDLEWARE] Cookies: ${cookieHeader ? `${cookieHeader.length} chars, preview: ${cookieHeader.substring(0, 50)}...` : 'None'}`)
+  }
   
   const supabase = createServerClient(
     process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,

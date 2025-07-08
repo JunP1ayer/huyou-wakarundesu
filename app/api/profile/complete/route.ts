@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { calcAllowance } from '@/lib/calcAllowance'
+import { debugAuthHeaders, debugSessionResponse, debugEnvironmentVars } from '@/lib/auth-debug'
+import { logConfigurationStatus } from '@/lib/config-check'
 import type { 
   ProfileCompleteRequest, 
   ProfileCompleteApiResponse, 
@@ -70,17 +72,36 @@ function createErrorResponse(
  * セッション検証の厳格化
  */
 async function validateSession(supabase: ReturnType<typeof createRouteHandlerClient>): Promise<
-  | { isValid: true; session: NonNullable<any> }
+  | { isValid: true; session: { user: { id: string } } }
   | { isValid: false; errorResponse: NextResponse<ApiErrorResponse> }
 > {
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
+    // Debug session response
+    debugSessionResponse(session, sessionError)
+    
     if (sessionError) {
-      console.error('[AUTH] Session validation error:', sessionError.message)
+      console.error('[AUTH] Session validation error:', sessionError.message, sessionError)
       
-      // セッション期限切れ vs その他のエラーを区別
-      const isExpired = sessionError.message?.includes('expired') || sessionError.message?.includes('invalid')
+      // より詳細なエラー分析
+      const isExpired = sessionError.message?.toLowerCase().includes('expired') || 
+                       sessionError.message?.toLowerCase().includes('invalid') ||
+                       sessionError.code === 'session_expired'
+      const isNetworkError = sessionError.message?.toLowerCase().includes('network') ||
+                            sessionError.message?.toLowerCase().includes('fetch')
+      
+      if (isNetworkError) {
+        return {
+          isValid: false,
+          errorResponse: createErrorResponse(
+            'Authentication service temporarily unavailable',
+            'INTERNAL_ERROR',
+            503,
+            'Network connectivity issue with auth service'
+          )
+        }
+      }
       
       return {
         isValid: false,
@@ -88,26 +109,73 @@ async function validateSession(supabase: ReturnType<typeof createRouteHandlerCli
           isExpired ? 'Session expired' : 'Session validation failed',
           isExpired ? 'SESSION_EXPIRED' : 'UNAUTHORIZED',
           401,
-          undefined,
+          process.env.NODE_ENV === 'development' ? sessionError.message : undefined,
           '/login'
         )
       }
     }
     
-    if (!session?.user?.id) {
-      console.error('[AUTH] No valid session or user found')
+    if (!session) {
+      console.error('[AUTH] No session returned from Supabase')
       return {
         isValid: false,
         errorResponse: createErrorResponse(
-          'Authentication required',
+          'No active session found',
           'UNAUTHORIZED',
           401,
-          undefined,
+          'Session object is null',
+          '/login'
+        )
+      }
+    }
+    
+    if (!session.user) {
+      console.error('[AUTH] Session exists but no user object')
+      return {
+        isValid: false,
+        errorResponse: createErrorResponse(
+          'Invalid session - no user data',
+          'UNAUTHORIZED',
+          401,
+          'User object missing from session',
+          '/login'
+        )
+      }
+    }
+    
+    if (!session.user.id) {
+      console.error('[AUTH] User object exists but no ID')
+      return {
+        isValid: false,
+        errorResponse: createErrorResponse(
+          'Invalid user session',
+          'UNAUTHORIZED',
+          401,
+          'User ID missing from session',
           '/login'
         )
       }
     }
 
+    // Additional session health checks
+    if (session.expires_at) {
+      const now = Math.floor(Date.now() / 1000)
+      if (session.expires_at <= now) {
+        console.error('[AUTH] Session token has expired')
+        return {
+          isValid: false,
+          errorResponse: createErrorResponse(
+            'Session expired',
+            'SESSION_EXPIRED',
+            401,
+            'Token expiry time has passed',
+            '/login'
+          )
+        }
+      }
+    }
+
+    console.log(`[AUTH] Session validation successful for user: ${session.user.id}`)
     return { isValid: true, session }
   } catch (error) {
     console.error('[AUTH] Unexpected session validation error:', error)
@@ -126,10 +194,21 @@ export async function POST(request: Request): Promise<NextResponse<ProfileComple
   const startTime = Date.now()
   
   try {
-    // Log incoming request details for debugging
-    console.log(`[API] POST /api/profile/complete`)
-    console.log(`[API] Headers:`, Object.fromEntries(request.headers.entries()))
-    console.log(`[API] Cookie header:`, request.headers.get('cookie')?.substring(0, 100) + '...')
+    // Comprehensive debugging and configuration validation
+    console.log(`[API] POST /api/profile/complete - ${new Date().toISOString()}`)
+    const configStatus = logConfigurationStatus()
+    
+    if (!configStatus.isValid) {
+      return createErrorResponse(
+        'Server configuration error',
+        'INTERNAL_ERROR', 
+        500,
+        'Missing required environment variables'
+      )
+    }
+    
+    debugAuthHeaders(request.headers)
+    debugEnvironmentVars()
 
     // 1. リクエストボディの検証
     let body: unknown
@@ -154,7 +233,15 @@ export async function POST(request: Request): Promise<NextResponse<ProfileComple
 
     const input = validation.data
 
-    // 2. Supabaseクライアントの初期化（requestも渡すことで全てのヘッダーが利用可能になる）
+    // 2. Supabaseクライアントの初期化 + 環境変数確認
+    console.log(`[API] Environment check:`, {
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
+      hasNextPublicUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasNextPublicKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      nodeEnv: process.env.NODE_ENV
+    })
+    
     const supabase = createRouteHandlerClient({ cookies })
     console.log(`[API] Supabase client created`)
     
