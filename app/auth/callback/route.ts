@@ -173,8 +173,8 @@ export async function GET(request: Request) {
         status: sessionError.status,
         
         // Additional Properties (may not exist)
-        details: (sessionError as any).details || 'N/A',
-        hint: (sessionError as any).hint || 'N/A',
+        details: (sessionError as unknown as Record<string, unknown>).details || 'N/A',
+        hint: (sessionError as unknown as Record<string, unknown>).hint || 'N/A',
         
         // Stack Trace
         hasStack: !!sessionError.stack,
@@ -189,12 +189,12 @@ export async function GET(request: Request) {
         allErrorProperties: Object.getOwnPropertyNames(sessionError),
         errorValues: Object.getOwnPropertyNames(sessionError).reduce((acc, key) => {
           try {
-            acc[key] = (sessionError as any)[key];
-          } catch (e) {
+            acc[key] = (sessionError as unknown as Record<string, unknown>)[key];
+          } catch {
             acc[key] = '[Cannot access]';
           }
           return acc;
-        }, {} as Record<string, any>),
+        }, {} as Record<string, unknown>),
         
         // JSON Serialization
         fullErrorObject: JSON.stringify(sessionError, null, 2)
