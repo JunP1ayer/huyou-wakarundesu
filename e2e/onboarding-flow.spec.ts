@@ -1,17 +1,16 @@
 /**
- * オンボーディングフロー E2Eテスト（新4ステップ形式）
+ * オンボーディングフロー E2Eテスト（新3ステップ形式）
  * ユーザーが最初に利用する際の完全なフローをテスト
- * 年間収入入力ステップを削除し、4ステップ構成に変更
+ * 3ステップ構成: 学生確認 → 扶養確認 → 労働契約確認
  */
 
 import { test, expect, Page } from '@playwright/test'
 
-// ヘルパー関数：新4ステップ形式のオンボーディング完了（年間収入ステップ削除）
+// ヘルパー関数：新3ステップ形式のオンボーディング完了
 async function completeOnboarding(page: Page, answers: {
   is_student: boolean,
-  under_103_last_year: boolean,
   using_family_insurance: boolean,
-  weekly_hours: string
+  is_over_20h_contract: boolean
 }) {
   // オンボーディング開始
   await page.goto('/')
@@ -24,15 +23,7 @@ async function completeOnboarding(page: Page, answers: {
     await page.click('text=いいえ、学生ではありません')
   }
 
-  // 質問2: 昨年のアルバイト収入は 103 万円以下でしたか？
-  await expect(page.locator('h2')).toContainText('昨年のアルバイト収入は 103 万円以下でしたか？')
-  if (answers.under_103_last_year) {
-    await page.click('text=はい、103万円以下でした')
-  } else {
-    await page.click('text=いいえ、103万円を超えていました')
-  }
-
-  // 質問3: 親やご家族の健康保険証を使っていますか？
+  // 質問2: 親やご家族の健康保険証を使っていますか？
   await expect(page.locator('h2')).toContainText('親やご家族の健康保険証を使っていますか？')
   if (answers.using_family_insurance) {
     await page.click('text=はい、家族の保険証を使っています')
@@ -40,13 +31,16 @@ async function completeOnboarding(page: Page, answers: {
     await page.click('text=いいえ、自分で加入しています')
   }
 
-  // 質問4: 1週間に平均どれくらい働いていますか？
-  await expect(page.locator('h2')).toContainText('1週間に平均どれくらい働いていますか？')
-  await page.fill('input[type="number"]', answers.weekly_hours)
-  await page.click('text=設定完了')
+  // 質問3: あなたの "契約上の" 週あたり労働時間は 20 時間以上ですか？
+  await expect(page.locator('h2')).toContainText('あなたの "契約上の" 週あたり労働時間は 20 時間以上ですか？')
+  if (answers.is_over_20h_contract) {
+    await page.click('text=はい、20時間以上です')
+  } else {
+    await page.click('text=いいえ、20時間未満です')
+  }
 }
 
-test.describe('オンボーディングフロー（新4ステップ形式）', () => {
+test.describe('オンボーディングフロー（新3ステップ形式）', () => {
   test.beforeEach(async ({ page }) => {
     // テスト前のセットアップ（認証等は環境に応じて設定）
     await page.goto('/')
@@ -55,46 +49,43 @@ test.describe('オンボーディングフロー（新4ステップ形式）', (
   test('学生ユーザーの標準フロー', async ({ page }) => {
     await completeOnboarding(page, {
       is_student: true,
-      under_103_last_year: true,
       using_family_insurance: true,
-      weekly_hours: '20'
+      is_over_20h_contract: false
     })
 
-    // ダッシュボードに遷移することを確認
-    await expect(page).toHaveURL('/dashboard')
+    // 結果ページに遷移することを確認
+    await expect(page).toHaveURL(/\/result\?allowance=\d+/)
     
-    // 扶養控除の情報が表示されることを確認（v2では複数の閾値を表示）
+    // 扶養控除の情報が表示されることを確認
     await expect(page.locator('text*=万円')).toBeVisible()
   })
 
   test('一般ユーザーの標準フロー', async ({ page }) => {
     await completeOnboarding(page, {
       is_student: false,
-      under_103_last_year: false,
       using_family_insurance: false,
-      weekly_hours: '25'
+      is_over_20h_contract: true
     })
 
-    // ダッシュボードに遷移することを確認
-    await expect(page).toHaveURL('/dashboard')
+    // 結果ページに遷移することを確認
+    await expect(page).toHaveURL(/\/result\?allowance=\d+/)
     
     // 扶養控除の情報が表示されることを確認
-    await expect(page.locator('text*=103万円')).toBeVisible()
+    await expect(page.locator('text*=万円')).toBeVisible()
   })
 
   test('フルタイムに近いユーザー', async ({ page }) => {
     await completeOnboarding(page, {
       is_student: true,
-      under_103_last_year: true,
       using_family_insurance: true,
-      weekly_hours: '35'
+      is_over_20h_contract: true
     })
 
-    // ダッシュボードに遷移
-    await expect(page).toHaveURL('/dashboard')
+    // 結果ページに遷移
+    await expect(page).toHaveURL(/\/result\?allowance=\d+/)
     
-    // v2システムで警告が表示されることを確認（ダッシュボードv2では異なる表示）
-    await expect(page.locator('text*=状況')).toBeVisible()
+    // 扶養控除情報が表示されることを確認
+    await expect(page.locator('text*=万円')).toBeVisible()
   })
 
   test('戻るボタンの機能確認', async ({ page }) => {
@@ -113,49 +104,36 @@ test.describe('オンボーディングフロー（新4ステップ形式）', (
   test('プログレスバーの動作確認', async ({ page }) => {
     await page.goto('/')
     
-    // 初期状態（1/4）
-    await expect(page.locator('text=1/4')).toBeVisible()
+    // 初期状態（1/3）
+    await expect(page.locator('text=1/3')).toBeVisible()
     
     // 質問1を回答
     await page.click('text=はい、学生です')
     
-    // 2/4になることを確認
-    await expect(page.locator('text=2/4')).toBeVisible()
+    // 2/3になることを確認
+    await expect(page.locator('text=2/3')).toBeVisible()
     
     // 質問2を回答
-    await page.click('text=はい、103万円以下でした')
-    
-    // 3/4になることを確認
-    await expect(page.locator('text=3/4')).toBeVisible()
-    
-    // 質問3を回答
     await page.click('text=はい、家族の保険証を使っています')
     
-    // 4/4になることを確認
-    await expect(page.locator('text=4/4')).toBeVisible()
+    // 3/3になることを確認
+    await expect(page.locator('text=3/3')).toBeVisible()
   })
 
-  test('数値入力のバリデーション確認', async ({ page }) => {
+  test('3ステップ完了フロー確認', async ({ page }) => {
     await page.goto('/')
     
-    // 質問1, 2, 3を回答して質問4に到達
+    // 質問1を回答
     await page.click('text=はい、学生です')
-    await page.click('text=はい、103万円以下でした')
+    
+    // 質問2を回答
     await page.click('text=はい、家族の保険証を使っています')
     
-    // 無効な値（負の数）を入力
-    await page.fill('input[type="number"]', '-5')
-    await page.click('text=設定完了')
+    // 質問3を回答して完了
+    await page.click('text=いいえ、20時間未満です')
     
-    // エラーメッセージが表示されることを確認
-    await expect(page.locator('text=0以上の値を入力してください')).toBeVisible()
-    
-    // 有効な値を入力
-    await page.fill('input[type="number"]', '20')
-    await page.click('text=設定完了')
-    
-    // ダッシュボードに遷移することを確認
-    await expect(page).toHaveURL('/dashboard')
+    // 結果ページに遷移することを確認
+    await expect(page).toHaveURL(/\/result\?allowance=\d+/)
   })
 
   test('「わからない？」チャット機能', async ({ page }) => {
@@ -168,21 +146,19 @@ test.describe('オンボーディングフロー（新4ステップ形式）', (
     await expect(page.locator('text=扶養について詳しく教えます')).toBeVisible()
   })
 
-  test('空の入力値での送信防止', async ({ page }) => {
+  test('すべての質問がboolean形式で即座に回答可能', async ({ page }) => {
     await page.goto('/')
     
-    // 質問1, 2, 3を回答して質問4に到達
+    // 質問1でボタンがクリック可能であることを確認
+    await expect(page.locator('text=はい、学生です')).toBeEnabled()
+    await expect(page.locator('text=いいえ、学生ではありません')).toBeEnabled()
+    
+    // 質問1を回答
     await page.click('text=はい、学生です')
-    await page.click('text=はい、103万円以下でした')
-    await page.click('text=はい、家族の保険証を使っています')
     
-    // 空の状態で設定完了ボタンをクリック
-    const submitButton = page.locator('text=設定完了')
-    await expect(submitButton).toBeDisabled()
-    
-    // 値を入力すると有効になることを確認
-    await page.fill('input[type="number"]', '20')
-    await expect(submitButton).toBeEnabled()
+    // 質問2でボタンがクリック可能であることを確認
+    await expect(page.locator('text=はい、家族の保険証を使っています')).toBeEnabled()
+    await expect(page.locator('text=いいえ、自分で加入しています')).toBeEnabled()
   })
 })
 
@@ -195,19 +171,15 @@ test.describe('エラーハンドリング', () => {
     await expect(page.locator('text=ログインが必要です')).toBeVisible()
   })
 
-  test('大きすぎる値の入力制限', async ({ page }) => {
+  test('すべての回答パターンの確認', async ({ page }) => {
     await page.goto('/')
     
-    // 質問1, 2, 3を回答して質問4に到達
+    // パターン1: 学生・扶養・20時間未満
     await page.click('text=はい、学生です')
-    await page.click('text=はい、103万円以下でした')
     await page.click('text=はい、家族の保険証を使っています')
+    await page.click('text=いいえ、20時間未満です')
     
-    // 40時間を超える値を入力
-    await page.fill('input[type="number"]', '50')
-    await page.click('text=設定完了')
-    
-    // エラーメッセージが表示されることを確認
-    await expect(page.locator('text=40以下の値を入力してください')).toBeVisible()
+    // 結果ページに遷移することを確認
+    await expect(page).toHaveURL(/\/result\?allowance=\d+/)
   })
 })

@@ -6,12 +6,38 @@
 /**
  * @jest-environment node
  */
+
+// Mock NextRequest and NextResponse
+jest.mock('next/server', () => {
+  return {
+    NextRequest: class MockNextRequest {
+      constructor(input, init) {
+        this.url = input
+        this.method = init?.method || 'GET'
+        this.headers = new Map(Object.entries(init?.headers || {}))
+        this._body = init?.body || null
+      }
+      
+      async json() {
+        return JSON.parse(this._body)
+      }
+    },
+    NextResponse: {
+      json: jest.fn((data, options) => ({
+        json: async () => data,
+        status: options?.status || 200,
+        headers: {
+          get: jest.fn(),
+          set: jest.fn()
+        }
+      }))
+    }
+  }
+})
+
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/profile/complete/route'
 import type { ProfileCompleteApiResponse, ApiErrorResponse, ProfileCompleteResponse } from '@/types/api'
-
-// Mock globals
-global.Request = global.Request || class Request {}
 
 // Supabase モック
 const mockSupabaseAuth = {
