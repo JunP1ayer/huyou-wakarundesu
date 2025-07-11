@@ -8,19 +8,17 @@
  */
 
 // Mock NextRequest and NextResponse
-const mockRedirect = jest.fn()
 jest.mock('next/server', () => {
   return {
     NextResponse: {
-      redirect: mockRedirect
+      redirect: jest.fn()
     }
   }
 })
 
 // Mock cookies
-const mockCookies = jest.fn()
 jest.mock('next/headers', () => ({
-  cookies: mockCookies
+  cookies: jest.fn()
 }))
 
 // Supabase モック
@@ -41,16 +39,25 @@ const mockSupabase = {
 }
 
 // createRouteHandlerClient モック
-const mockCreateRouteHandlerClient = jest.fn(() => mockSupabase)
 jest.mock('@supabase/auth-helpers-nextjs', () => ({
-  createRouteHandlerClient: mockCreateRouteHandlerClient
+  createRouteHandlerClient: jest.fn()
 }))
 
 import { GET } from '@/app/auth/callback/route'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+
+const mockCreateRouteHandlerClient = createRouteHandlerClient as jest.MockedFunction<typeof createRouteHandlerClient>
+const mockCookies = cookies as jest.MockedFunction<typeof cookies>
+const mockRedirect = NextResponse.redirect as jest.MockedFunction<typeof NextResponse.redirect>
 
 describe('/auth/callback - Cookie Store 検証テスト', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // Mock the createRouteHandlerClient to return mockSupabase
+    mockCreateRouteHandlerClient.mockReturnValue(mockSupabase)
     
     // デフォルト成功レスポンス
     mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
