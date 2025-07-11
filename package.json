@@ -16,6 +16,7 @@
     "lint": "next lint --max-warnings 50",
     "type-check": "tsc --noEmit",
     "verify-env": "node scripts/verify-env.js",
+    "verify-auth": "node scripts/verify-auth-config.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

@@ -4,13 +4,38 @@ import { NextResponse } from 'next/server'
 import type { Database } from '@/types/supabase'
 
 export async function GET(request: Request) {
-  console.log('[AUTH CALLBACK] 認証コールバック処理開始')
+  const startTime = Date.now()
+  console.log('[AUTH CALLBACK] 認証コールバック処理開始', {
+    timestamp: new Date().toISOString(),
+    url: request.url,
+    method: request.method
+  })
   
   try {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
     const error = requestUrl.searchParams.get('error')
     const errorDescription = requestUrl.searchParams.get('error_description')
+    const state = requestUrl.searchParams.get('state')
+    
+    console.log('[AUTH CALLBACK] リクエスト詳細:', {
+      host: requestUrl.host,
+      pathname: requestUrl.pathname,
+      searchParams: Object.fromEntries(requestUrl.searchParams),
+      hasCode: !!code,
+      codeLength: code?.length || 0,
+      hasError: !!error,
+      hasState: !!state
+    })
+    
+    // 環境変数の確認
+    console.log('[AUTH CALLBACK] 環境変数確認:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+      supabaseUrlPreview: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
+    })
     
     // エラーパラメータが存在する場合の処理
     if (error) {
@@ -31,16 +56,44 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/login?error=no_code', request.url))
     }
     
-    console.log('[AUTH CALLBACK] 認証コードを検証中...')
+    console.log('[AUTH CALLBACK] 認証コードを検証中...', {
+      codePreview: code.substring(0, 10) + '...',
+      codeLength: code.length
+    })
     
     const supabase = createRouteHandlerClient<Database>({ cookies })
+    console.log('[AUTH CALLBACK] Supabaseクライアント作成完了')
     
     // URLから認証セッションを取得
+    console.log('[AUTH CALLBACK] exchangeCodeForSession開始...')
+    const exchangeStartTime = Date.now()
     const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+    const exchangeEndTime = Date.now()
     
-    if (sessionError || !data.session) {
-      console.error('[AUTH CALLBACK] セッション取得失敗:', sessionError)
-      return NextResponse.redirect(new URL('/login?error=auth_failed', request.url))
+    console.log('[AUTH CALLBACK] exchangeCodeForSession完了', {
+      duration: exchangeEndTime - exchangeStartTime,
+      hasData: !!data,
+      hasSession: !!data?.session,
+      hasUser: !!data?.user,
+      hasError: !!sessionError
+    })
+    
+    if (sessionError) {
+      console.error('[AUTH CALLBACK] セッション取得エラー詳細:', {
+        message: sessionError.message,
+        status: sessionError.status,
+        name: sessionError.name,
+        stack: sessionError.stack?.split('\n').slice(0, 3).join('\n')
+      })
+      return NextResponse.redirect(new URL(`/login?error=auth_failed&details=${encodeURIComponent(sessionError.message)}`, request.url))
+    }
+    
+    if (!data.session) {
+      console.error('[AUTH CALLBACK] セッションが存在しません:', {
+        dataKeys: Object.keys(data || {}),
+        dataSessionValue: data?.session
+      })
+      return NextResponse.redirect(new URL('/login?error=no_session', request.url))
     }
     
     const { session, user } = data
@@ -88,7 +141,19 @@ export async function GET(request: Request) {
     }
     
   } catch (error) {
-    console.error('[AUTH CALLBACK] 予期しないエラー:', error)
-    return NextResponse.redirect(new URL('/login?error=callback_failed', request.url))
+    const totalTime = Date.now() - startTime
+    console.error('[AUTH CALLBACK] 予期しないエラー:', {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : undefined,
+      totalProcessingTime: totalTime
+    })
+    return NextResponse.redirect(new URL(`/login?error=callback_failed&details=${encodeURIComponent(error instanceof Error ? error.message : 'Unknown error')}`, request.url))
+  } finally {
+    const totalTime = Date.now() - startTime
+    console.log('[AUTH CALLBACK] 処理完了', {
+      totalProcessingTime: totalTime,
+      timestamp: new Date().toISOString()
+    })
   }
 }
