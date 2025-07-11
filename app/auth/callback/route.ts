@@ -57,14 +57,13 @@ export async function GET(request: Request) {
     try {
       const { data: profile, error: profileError } = await supabase
         .from('user_profile')
-        .select('user_id, profile_completed, onboarding_step')
+        .select('user_id, profile_completed')
         .eq('user_id', user.id)
         .single()
       
       if (profile) {
         console.log('[AUTH CALLBACK] ユーザープロファイル確認済み:', {
-          profileCompleted: profile.profile_completed,
-          onboardingStep: profile.onboarding_step
+          profileCompleted: profile.profile_completed
         })
         
         // プロファイル完了状況に応じてリダイレクト先を決定
