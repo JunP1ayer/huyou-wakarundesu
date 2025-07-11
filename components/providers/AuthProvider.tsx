@@ -167,18 +167,62 @@ export default function AuthProvider({
         
         // Use getUser() instead of getSession() for proper authentication
         if (!initialSession) {
+          console.log('[AUTH DEBUG] 🔍 Starting user authentication check')
+          const getUserStartTime = Date.now()
           const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+          const getUserEndTime = Date.now()
+          
+          console.log('[AUTH DEBUG] 📊 getUser() result:', {
+            duration: getUserEndTime - getUserStartTime,
+            hasUser: !!currentUser,
+            userId: currentUser?.id?.substring(0, 8) + '...',
+            userEmail: currentUser?.email,
+            hasError: !!error,
+            errorMessage: error?.message,
+            errorName: error?.name,
+            timestamp: new Date().toISOString()
+          })
+          
           if (error) {
             console.log('🔴 Auth: User validation failed:', error.message)
             setSession(null)
             setUser(null)
           } else {
             // If user is authenticated, get the current session
-            const { data: { session: currentSession } } = await supabase.auth.getSession()
+            console.log('[AUTH DEBUG] 🔍 User authenticated, fetching session details')
+            const getSessionStartTime = Date.now()
+            const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
+            const getSessionEndTime = Date.now()
+            
+            console.log('[AUTH DEBUG] 📊 getSession() result:', {
+              duration: getSessionEndTime - getSessionStartTime,
+              hasSession: !!currentSession,
+              hasAccessToken: !!currentSession?.access_token,
+              hasRefreshToken: !!currentSession?.refresh_token,
+              tokenType: currentSession?.token_type,
+              expiresAt: currentSession?.expires_at,
+              expiresIn: currentSession?.expires_in,
+              sessionUserId: currentSession?.user?.id?.substring(0, 8) + '...',
+              sessionUserEmail: currentSession?.user?.email,
+              providerToken: currentSession?.provider_token ? 'present' : 'absent',
+              hasSessionError: !!sessionError,
+              sessionErrorMessage: sessionError?.message,
+              timestamp: new Date().toISOString()
+            })
+            
+            if (sessionError) {
+              console.error('[AUTH DEBUG] 🔴 Session fetch error:', {
+                message: sessionError.message,
+                name: sessionError.name,
+                status: sessionError.status
+              })
+            }
+            
             setSession(currentSession)
             setUser(currentUser)
           
             if (currentUser) {
+              console.log('[AUTH DEBUG] 👤 User authenticated, fetching profile...')
               const profileData = await fetchProfile(currentUser.id)
               setProfile(profileData)
               setProfileComplete(isProfileComplete(profileData))
@@ -232,20 +276,63 @@ export default function AuthProvider({
       async (event, currentSession) => {
         console.log('🔐 Auth state change:', event, currentSession?.user?.email)
         
+        console.log('[AUTH DEBUG] 🔄 Auth state change detailed analysis:', {
+          event: event,
+          timestamp: new Date().toISOString(),
+          hasSession: !!currentSession,
+          sessionDetails: {
+            hasUser: !!currentSession?.user,
+            userId: currentSession?.user?.id?.substring(0, 8) + '...',
+            userEmail: currentSession?.user?.email,
+            hasAccessToken: !!currentSession?.access_token,
+            hasRefreshToken: !!currentSession?.refresh_token,
+            tokenType: currentSession?.token_type,
+            expiresAt: currentSession?.expires_at,
+            expiresIn: currentSession?.expires_in,
+            providerToken: currentSession?.provider_token ? 'present' : 'absent',
+            providerRefreshToken: currentSession?.provider_refresh_token ? 'present' : 'absent'
+          },
+          userMetadata: currentSession?.user ? {
+            aud: currentSession.user.aud,
+            emailConfirmed: currentSession.user.email_confirmed_at ? 'confirmed' : 'unconfirmed',
+            provider: currentSession.user.app_metadata?.provider,
+            providers: currentSession.user.app_metadata?.providers,
+            createdAt: currentSession.user.created_at,
+            lastSignIn: currentSession.user.last_sign_in_at
+          } : null
+        })
+        
+        // Additional validation of session integrity
+        if (currentSession && !currentSession.access_token) {
+          console.error('[AUTH DEBUG] 🔴 Invalid session: missing access_token')
+        }
+        if (currentSession && !currentSession.user) {
+          console.error('[AUTH DEBUG] 🔴 Invalid session: missing user object')
+        }
+        if (currentSession && currentSession.expires_at && currentSession.expires_at < Date.now() / 1000) {
+          console.warn('[AUTH DEBUG] ⚠️ Session appears to be expired', {
+            expiresAt: new Date(currentSession.expires_at * 1000).toISOString(),
+            currentTime: new Date().toISOString()
+          })
+        }
+        
         setSession(currentSession)
         setUser(currentSession?.user || null)
 
         if (currentSession?.user) {
+          console.log('[AUTH DEBUG] 👤 Session user found, fetching profile...')
           // Fetch profile for new session
           const profileData = await fetchProfile(currentSession.user.id)
           setProfile(profileData)
           setProfileComplete(isProfileComplete(profileData))
         } else {
+          console.log('[AUTH DEBUG] 🚪 No session user, clearing profile data')
           // Clear profile data when logged out
           setProfile(null)
           setProfileComplete(false)
         }
 
+        console.log('[AUTH DEBUG] ✅ Auth state change processing complete')
         setLoading(false)
       }
     )

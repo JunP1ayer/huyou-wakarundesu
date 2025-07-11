@@ -67,15 +67,52 @@ export async function GET(request: Request) {
     // URLから認証セッションを取得
     console.log('[AUTH CALLBACK] exchangeCodeForSession開始...')
     const exchangeStartTime = Date.now()
-    const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
-    const exchangeEndTime = Date.now()
     
+    let data: any, sessionError: any
+    try {
+      console.log('[AUTH CALLBACK] exchangeCodeForSession実行詳細:', {
+        codeFormat: code.substring(0, 10) + '...' + code.substring(code.length - 10),
+        codeLength: code.length,
+        supabaseClientReady: !!supabase,
+        requestOrigin: requestUrl.origin,
+        userAgent: request.headers.get('user-agent')?.substring(0, 100)
+      })
+      
+      const result = await supabase.auth.exchangeCodeForSession(code)
+      data = result.data
+      sessionError = result.error
+      
+      console.log('[AUTH CALLBACK] exchangeCodeForSession結果詳細:', {
+        hasResult: !!result,
+        resultKeys: result ? Object.keys(result) : [],
+        hasData: !!result?.data,
+        dataKeys: result?.data ? Object.keys(result.data) : [],
+        hasError: !!result?.error,
+        errorType: result?.error ? typeof result.error : 'none'
+      })
+    } catch (exchangeException) {
+      const exchangeEndTime = Date.now()
+      console.error('[AUTH CALLBACK] exchangeCodeForSession例外発生:', {
+        exceptionName: exchangeException instanceof Error ? exchangeException.name : 'Unknown',
+        exceptionMessage: exchangeException instanceof Error ? exchangeException.message : String(exchangeException),
+        exceptionStack: exchangeException instanceof Error ? exchangeException.stack?.split('\n').slice(0, 5).join('\n') : undefined,
+        duration: exchangeEndTime - exchangeStartTime,
+        codeUsed: code.substring(0, 20) + '...',
+        timestamp: new Date().toISOString()
+      })
+      return NextResponse.redirect(new URL(`/login?error=exchange_exception&details=${encodeURIComponent(exchangeException instanceof Error ? exchangeException.message : 'Exchange failed')}`, request.url))
+    }
+    
+    const exchangeEndTime = Date.now()
     console.log('[AUTH CALLBACK] exchangeCodeForSession完了', {
       duration: exchangeEndTime - exchangeStartTime,
       hasData: !!data,
       hasSession: !!data?.session,
       hasUser: !!data?.user,
-      hasError: !!sessionError
+      hasError: !!sessionError,
+      sessionTokenPreview: data?.session?.access_token?.substring(0, 20) + '...',
+      userIdPreview: data?.user?.id?.substring(0, 8) + '...',
+      userEmail: data?.user?.email
     })
     
     if (sessionError) {
@@ -83,9 +120,13 @@ export async function GET(request: Request) {
         message: sessionError.message,
         status: sessionError.status,
         name: sessionError.name,
-        stack: sessionError.stack?.split('\n').slice(0, 3).join('\n')
+        code: sessionError.code,
+        details: sessionError.details,
+        hint: sessionError.hint,
+        stack: sessionError.stack?.split('\n').slice(0, 3).join('\n'),
+        fullErrorObject: JSON.stringify(sessionError, null, 2)
       })
-      return NextResponse.redirect(new URL(`/login?error=auth_failed&details=${encodeURIComponent(sessionError.message)}`, request.url))
+      return NextResponse.redirect(new URL(`/login?error=auth_failed&details=${encodeURIComponent(sessionError.message)}&code=${encodeURIComponent(sessionError.code || 'unknown')}`, request.url))
     }
     
     if (!data.session) {

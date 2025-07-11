@@ -50,8 +50,37 @@ function LoginContent() {
 
   const handleGoogleLogin = async () => {
     if (!supabase) {
+      console.error('[LOGIN DEBUG] 🔴 Supabase client not available')
       setError(t('auth.login.loginFailed'))
       return
+    }
+    
+    console.log('[LOGIN DEBUG] 🚀 Google login initiated', {
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent.substring(0, 100),
+      currentUrl: window.location.href,
+      experimentId: experimentId
+    })
+    
+    // Check current session before login
+    try {
+      const { data: { session: preLoginSession }, error: preLoginError } = await supabase.auth.getSession()
+      console.log('[LOGIN DEBUG] 📊 Pre-login session check:', {
+        hasExistingSession: !!preLoginSession,
+        existingUserId: preLoginSession?.user?.id?.substring(0, 8) + '...',
+        existingUserEmail: preLoginSession?.user?.email,
+        hasError: !!preLoginError,
+        errorMessage: preLoginError?.message,
+        timestamp: new Date().toISOString()
+      })
+      
+      if (preLoginSession) {
+        console.log('[LOGIN DEBUG] ⚠️ User already has active session, redirecting...')
+        router.replace('/dashboard')
+        return
+      }
+    } catch (preLoginCheckError) {
+      console.error('[LOGIN DEBUG] 🔴 Pre-login session check failed:', preLoginCheckError)
     }
     
     setIsLoading(true)
@@ -67,10 +96,19 @@ function LoginContent() {
     
     try {
       const redirectUrl = `${window.location.origin}/auth/callback`
-      console.log('🔍 OAuth Redirect URL:', redirectUrl)
-      console.log('🌐 Current Origin:', window.location.origin)
+      console.log('[LOGIN DEBUG] 🔗 OAuth configuration:', {
+        redirectUrl: redirectUrl,
+        currentOrigin: window.location.origin,
+        provider: 'google',
+        scopes: 'openid email profile',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account'
+        }
+      })
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const oauthStartTime = Date.now()
+      const { data: oauthData, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -81,12 +119,39 @@ function LoginContent() {
           scopes: 'openid email profile'
         }
       })
+      const oauthEndTime = Date.now()
+      
+      console.log('[LOGIN DEBUG] 📊 signInWithOAuth result:', {
+        duration: oauthEndTime - oauthStartTime,
+        hasData: !!oauthData,
+        dataKeys: oauthData ? Object.keys(oauthData) : [],
+        oauthUrl: oauthData?.url?.substring(0, 100) + '...',
+        provider: oauthData?.provider,
+        hasError: !!error,
+        errorMessage: error?.message,
+        errorStatus: error?.status,
+        timestamp: new Date().toISOString()
+      })
 
       if (error) {
+        console.error('[LOGIN DEBUG] 🔴 OAuth initiation failed:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        })
         setError(t('auth.login.loginFailed'))
         setIsLoading(false)
+      } else {
+        console.log('[LOGIN DEBUG] ✅ OAuth redirect initiated successfully')
+        // Note: User will be redirected to Google, so this code may not execute
       }
-    } catch {
+    } catch (oauthException) {
+      console.error('[LOGIN DEBUG] 🔴 OAuth exception occurred:', {
+        message: oauthException instanceof Error ? oauthException.message : String(oauthException),
+        name: oauthException instanceof Error ? oauthException.name : 'Unknown',
+        stack: oauthException instanceof Error ? oauthException.stack?.split('\n').slice(0, 3).join('\n') : undefined,
+        timestamp: new Date().toISOString()
+      })
       setError(t('auth.login.loginFailed'))
       setIsLoading(false)
     }

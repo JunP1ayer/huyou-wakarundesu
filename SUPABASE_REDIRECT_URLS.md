@@ -1,46 +1,120 @@
-# Supabase リダイレクト URL 設定
+# Supabase Redirect URL Configuration Verification
 
-## 設定手順
+## 🎯 Purpose
+This document provides step-by-step instructions to verify that Supabase redirect URLs are correctly configured for the `huyou-wakarundesu` project authentication flow.
 
-1. [Supabaseダッシュボード](https://supabase.com/dashboard) にアクセス
-2. プロジェクトを選択
-3. 「Authentication」→「URL Configuration」に移動
-4. 以下のURLを追加してください
+## 🔗 Required Redirect URLs
 
-## 追加すべきリダイレクトURL
-
-### 本番環境用
-```
-https://huyou-wakarundesu.vercel.app/auth/callback
-```
-
-### プレビュー環境用（Vercel）
-```
-https://huyou-wakarundesu-*.vercel.app/auth/callback
-```
-
-### ローカル開発環境用
+### Development
 ```
 http://localhost:3000/auth/callback
 ```
 
-## 設定後の確認事項
+### Production
+```
+https://huyou-wakarundesu.vercel.app/auth/callback
+```
 
-1. ✅ 認証コールバックが正常に動作することを確認
-2. ✅ ローカル開発環境でGoogle OAuth認証が機能することを確認
-3. ✅ Vercel Preview環境で認証が機能することを確認
-4. ✅ 本番環境で認証が機能することを確認
+### Preview Deployments (Vercel)
+```
+https://huyou-wakarundesu-*.vercel.app/auth/callback
+```
 
-## 注意事項
+**Note**: Replace `*` with any branch name. Common examples:
+- `https://huyou-wakarundesu-feature-onboarding-v2.vercel.app/auth/callback`
+- `https://huyou-wakarundesu-main.vercel.app/auth/callback`
+- `https://huyou-wakarundesu-dev.vercel.app/auth/callback`
 
-- ワイルドカード（*）を使用したURLは、Vercelのプレビューデプロイメント用です
-- セキュリティのため、不要なリダイレクトURLは削除してください
-- 新しいドメインを追加する場合は、同様にこのリストを更新してください
+## 📋 Verification Steps
 
-## 認証フロー
+### 1. Access Supabase Dashboard
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Login to your account
+3. Select the `huyou-wakarundesu` project
 
-1. ユーザーが `/login` でGoogle認証をクリック
-2. Google OAuth画面でユーザーが認証
-3. Googleが `/auth/callback` にリダイレクト
-4. 新しいルートハンドラー（`/app/auth/callback/route.ts`）が認証コードを処理
-5. セッション作成後、適切なページ（`/` または `/dashboard`）にリダイレクト
+### 2. Navigate to Authentication Settings
+1. Click **Authentication** in the left sidebar
+2. Click **URL Configuration** tab
+3. Look for the **Redirect URLs** section
+
+### 3. Verify Current URLs
+Check that the following URLs are listed in the **Site URL** and **Redirect URLs** fields:
+
+#### Site URL (should be one of):
+```
+http://localhost:3000
+https://huyou-wakarundesu.vercel.app
+```
+
+#### Redirect URLs (should include ALL of these):
+```
+http://localhost:3000/auth/callback
+https://huyou-wakarundesu.vercel.app/auth/callback
+https://huyou-wakarundesu-*.vercel.app/auth/callback
+```
+
+### 4. Add Missing URLs
+If any URLs are missing:
+1. Click **Add URL** button
+2. Paste the missing URL
+3. Click **Save**
+4. Wait for configuration to propagate (usually immediate)
+
+## 🚨 Common Issues
+
+### Issue 1: Wildcard URLs Not Working
+**Problem**: Preview deployments fail with redirect_uri_mismatch
+**Solution**: Add specific preview URLs manually:
+```
+https://huyou-wakarundesu-feature-onboarding-v2.vercel.app/auth/callback
+```
+
+### Issue 2: Case Sensitivity
+**Problem**: URLs with different cases cause mismatches
+**Solution**: Ensure exact case matches between Supabase config and Vercel deployment URLs
+
+### Issue 3: Missing HTTPS
+**Problem**: Production URLs failing with insecure redirect
+**Solution**: Ensure all production URLs use `https://`
+
+## 🔍 Testing Verification
+
+### Manual Test
+1. Deploy to Vercel Preview
+2. Get the preview URL from Vercel dashboard
+3. Navigate to preview URL + `/login`
+4. Click "Login with Google"
+5. Complete OAuth flow
+6. Should redirect to preview URL + `/auth/callback` successfully
+
+### Automated Verification
+```bash
+npm run verify-auth
+```
+
+This script will check environment variables and provide guidance on URL configuration.
+
+## 📊 Current Configuration Status
+
+### Environment Variables ✅
+- `NEXT_PUBLIC_SUPABASE_URL`: ✅ Configured
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: ✅ Configured
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: ✅ Configured
+- `GOOGLE_CLIENT_SECRET`: ✅ Configured
+
+### URLs to Verify ⚠️
+- [ ] `http://localhost:3000/auth/callback`
+- [ ] `https://huyou-wakarundesu.vercel.app/auth/callback`
+- [ ] `https://huyou-wakarundesu-*.vercel.app/auth/callback`
+
+## 🎯 Next Steps
+1. ✅ Complete Supabase URL verification
+2. ⏳ Test OAuth flow on Preview deployment
+3. ⏳ Deploy to production after successful Preview test
+4. ⏳ Monitor auth logs for any remaining issues
+
+---
+
+**Last Updated**: 2025-07-11  
+**Project**: huyou-wakarundesu  
+**Environment**: Production + Preview  

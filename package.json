@@ -11,6 +11,7 @@
     "dev": "rimraf .next && next dev",
     "dev:turbo": "rimraf .next && next dev --turbopack",
     "predev": "node scripts/check-env.js --quick",
+    "prebuild": "node scripts/log-build-env.js",
     "build": "rimraf .next && next build",
     "start": "next start -p 3000",
     "lint": "next lint --max-warnings 50",
