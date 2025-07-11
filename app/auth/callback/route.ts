@@ -2,6 +2,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/supabase'
+import type { AuthResponse } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
   const startTime = Date.now()
@@ -68,7 +69,8 @@ export async function GET(request: Request) {
     console.log('[AUTH CALLBACK] exchangeCodeForSession開始...')
     const exchangeStartTime = Date.now()
     
-    let data: any, sessionError: any
+    let data: AuthResponse['data'] | null = null
+    let sessionError: AuthResponse['error'] | null = null
     try {
       console.log('[AUTH CALLBACK] exchangeCodeForSession実行詳細:', {
         codeFormat: code.substring(0, 10) + '...' + code.substring(code.length - 10),
@@ -121,15 +123,15 @@ export async function GET(request: Request) {
         status: sessionError.status,
         name: sessionError.name,
         code: sessionError.code,
-        details: sessionError.details,
-        hint: sessionError.hint,
+        // details: sessionError.details, // May not exist on all error types
+        // hint: sessionError.hint, // May not exist on all error types
         stack: sessionError.stack?.split('\n').slice(0, 3).join('\n'),
         fullErrorObject: JSON.stringify(sessionError, null, 2)
       })
       return NextResponse.redirect(new URL(`/login?error=auth_failed&details=${encodeURIComponent(sessionError.message)}&code=${encodeURIComponent(sessionError.code || 'unknown')}`, request.url))
     }
     
-    if (!data.session) {
+    if (!data?.session) {
       console.error('[AUTH CALLBACK] セッションが存在しません:', {
         dataKeys: Object.keys(data || {}),
         dataSessionValue: data?.session
@@ -138,6 +140,11 @@ export async function GET(request: Request) {
     }
     
     const { session, user } = data
+    
+    if (!user) {
+      console.error('[AUTH CALLBACK] ユーザー情報が存在しません')
+      return NextResponse.redirect(new URL('/login?error=no_user', request.url))
+    }
     
     console.log('[AUTH CALLBACK] 認証成功:', {
       userId: user.id,
