@@ -37,10 +37,11 @@ test.describe('Admin Thresholds Management Flow', () => {
     await expect(page.locator('h1')).toContainText('扶養閾値管理')
     await expect(page.locator('text=年度別の扶養限度額を管理します')).toBeVisible()
     
-    // Check year selection buttons
-    await expect(page.locator('text=2024年')).toBeVisible()
-    await expect(page.locator('text=2025年')).toBeVisible()
-    await expect(page.locator('text=2026年')).toBeVisible()
+    // Check dynamic year selection buttons (prev, current, next)
+    const currentYear = new Date().getFullYear()
+    for (const y of [currentYear - 1, currentYear, currentYear + 1]) {
+      await expect(page.locator(`text=${y}年`)).toBeVisible()
+    }
     
     // Wait for data to load
     await page.waitForTimeout(2000)
@@ -75,14 +76,15 @@ test.describe('Admin Thresholds Management Flow', () => {
   test('should allow year selection', async ({ page }) => {
     await navigateToAdminThresholds(page)
     
-    // Test year selection
-    await page.click('text=2025年')
-    await expect(page.locator('text=2025年')).toHaveClass(/bg-indigo-600/)
+    // Test year selection with current year
+    const currentYear = new Date().getFullYear()
+    await page.click(`text=${currentYear}年`)
+    await expect(page.locator(`text=${currentYear}年`)).toHaveClass(/bg-indigo-600/)
     
     await page.waitForTimeout(1000)
     
     // Check that the page updates for the selected year
-    await expect(page.locator('text=2025年 扶養閾値一覧')).toBeVisible()
+    await expect(page.locator(`text=${currentYear}年 扶養閾値一覧`)).toBeVisible()
   })
 
   test('should handle threshold editing (UI only)', async ({ page }) => {

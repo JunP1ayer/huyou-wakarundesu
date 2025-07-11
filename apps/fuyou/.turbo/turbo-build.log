@@ -1,0 +1,31 @@
+
+> @app/fuyou@0.1.0 build /home/junp1ayer/huyou-wakarundesu/apps/fuyou
+> next build
+
+   ▲ Next.js 15.3.5
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.0s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/7) ...
+   Generating static pages (1/7) 
+   Generating static pages (3/7) 
+   Generating static pages (5/7) 
+ ✓ Generating static pages (7/7)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    3.42 kB         105 kB
+├ ○ /_not-found                            975 B         103 kB
+├ ○ /questions                           3.39 kB         115 kB
+└ ○ /result                              15.7 kB         128 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/34486403-3619cecea9912206.js  53.2 kB
+  ├ chunks/353-a36aca1d65ce20d4.js       46.6 kB
+  └ other shared chunks (total)          1.91 kB
+
+
+○  (Static)  prerendered as static content
+

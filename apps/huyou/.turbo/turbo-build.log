@@ -1,0 +1,100 @@
+
+> @app/huyou@0.1.0 build /home/junp1ayer/huyou-wakarundesu/apps/huyou
+> next build
+
+   ▲ Next.js 15.3.5
+
+   Creating an optimized production build ...
+> [PWA] Compile server
+> [PWA] Compile server
+> [PWA] Compile client (static)
+> [PWA] Auto register service worker with: /home/junp1ayer/huyou-wakarundesu/node_modules/.pnpm/next-pwa@5.6.0_@babel+core@7.28.0_@types+babel__core@7.20.5_next@15.3.5_@babel+core@7.2_7b84e0aad4d91ccb982716cb13563ae3/node_modules/next-pwa/register.js
+> [PWA] Service worker: /home/junp1ayer/huyou-wakarundesu/apps/huyou/public/sw-custom.js
+> [PWA]   url: /sw-custom.js
+> [PWA]   scope: /
+ ⚠ Compiled with warnings in 32.0s
+
+../../node_modules/.pnpm/require-in-the-middle@7.5.2/node_modules/require-in-the-middle/index.js
+Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
+
+Import trace for requested module:
+../../node_modules/.pnpm/require-in-the-middle@7.5.2/node_modules/require-in-the-middle/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+../../node_modules/.pnpm/@sentry+node@9.37.0/node_modules/@sentry/node/build/cjs/integrations/tracing/postgresjs.js
+../../node_modules/.pnpm/@sentry+node@9.37.0/node_modules/@sentry/node/build/cjs/index.js
+../../node_modules/.pnpm/@sentry+nextjs@9.37.0_@opentelemetry+context-async-hooks@1.30.1_@opentelemetry+api@1.9._6d20d14fb337db14195571db9b53879f/node_modules/@sentry/nextjs/build/cjs/index.server.js
+./components/chat/UnknownFuyouChat.tsx
+./components/onboarding/OnboardingWizard.tsx
+
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+../../node_modules/.pnpm/@sentry+node@9.37.0/node_modules/@sentry/node/build/cjs/integrations/tracing/postgresjs.js
+../../node_modules/.pnpm/@sentry+node@9.37.0/node_modules/@sentry/node/build/cjs/index.js
+../../node_modules/.pnpm/@sentry+nextjs@9.37.0_@opentelemetry+context-async-hooks@1.30.1_@opentelemetry+api@1.9._6d20d14fb337db14195571db9b53879f/node_modules/@sentry/nextjs/build/cjs/index.server.js
+./app/api/classifyFuyou/route.ts
+
+../../node_modules/.pnpm/require-in-the-middle@7.5.2/node_modules/require-in-the-middle/index.js
+Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
+
+Import trace for requested module:
+../../node_modules/.pnpm/require-in-the-middle@7.5.2/node_modules/require-in-the-middle/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+../../node_modules/.pnpm/@opentelemetry+instrumentation@0.57.2_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+../../node_modules/.pnpm/@sentry+node@9.37.0/node_modules/@sentry/node/build/cjs/integrations/tracing/postgresjs.js
+../../node_modules/.pnpm/@sentry+node@9.37.0/node_modules/@sentry/node/build/cjs/index.js
+../../node_modules/.pnpm/@sentry+nextjs@9.37.0_@opentelemetry+context-async-hooks@1.30.1_@opentelemetry+api@1.9._6d20d14fb337db14195571db9b53879f/node_modules/@sentry/nextjs/build/cjs/index.server.js
+./app/api/classifyFuyou/route.ts
+
+   Linting and checking validity of types ...
+
+ ⚠ The Next.js plugin was not detected in your ESLint configuration. See https://nextjs.org/docs/app/api-reference/config/eslint#migrating-existing-config
+   Collecting page data ...
+   Generating static pages (0/12) ...
+   Generating static pages (3/12) 
+   Generating static pages (6/12) 
+   Generating static pages (9/12) 
+ ✓ Generating static pages (12/12)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                    12.2 kB         114 kB
+├ ƒ /_not-found                            975 B         103 kB
+├ ƒ /admin/oauth-diagnostics              3.9 kB         106 kB
+├ ƒ /admin/thresholds                    6.28 kB         148 kB
+├ ƒ /api/auth/moneytree/callback           160 B         102 kB
+├ ƒ /api/auth/validate                     160 B         102 kB
+├ ƒ /api/classifyFuyou                     160 B         102 kB
+├ ƒ /api/csrf-token                        160 B         102 kB
+├ ƒ /api/dashboard/batch                   160 B         102 kB
+├ ƒ /api/health                            160 B         102 kB
+├ ƒ /api/moneytree/connect                 160 B         102 kB
+├ ƒ /api/moneytree/sync                    160 B         102 kB
+├ ƒ /api/profile/complete                  160 B         102 kB
+├ ƒ /auth/callback                         160 B         102 kB
+├ ƒ /dashboard                           4.95 kB         152 kB
+├ ƒ /login                                5.1 kB         170 kB
+├ ƒ /onboarding                           4.8 kB         170 kB
+├ ƒ /result                                831 B         106 kB
+└ ƒ /settings                             5.6 kB         153 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/34486403-83464ce1a6190d4c.js  53.2 kB
+  ├ chunks/353-cd0045b99d1dd5c1.js       46.6 kB
+  └ other shared chunks (total)          2.02 kB
+
+
+ƒ Middleware                             65.7 kB
+
+ƒ  (Dynamic)  server-rendered on demand
+

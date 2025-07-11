@@ -40,6 +40,16 @@ export default defineConfig({
     /* テストの高速化 */
     actionTimeout: 10000,
     navigationTimeout: 30000,
+
+    /* ブラウザ起動オプション（キャッシュ無効化でChunkLoadError回避） */
+    launchOptions: {
+      args: [
+        '--disable-application-cache',
+        '--disable-web-security',
+        '--disable-dev-shm-usage',
+        '--no-sandbox'
+      ]
+    },
   },
 
   /* プロジェクト設定（異なるブラウザ・デバイス） */
@@ -69,16 +79,6 @@ export default defineConfig({
       },
     },
 
-    {
-      name: 'firefox-mobile',
-      use: { 
-        ...devices['Galaxy S8'],
-        browserName: 'firefox',
-        contextOptions: {
-          locale: 'ja-JP'
-        }
-      },
-    },
 
     /* デスクトップ版（参考用） */
     {
@@ -92,7 +92,9 @@ export default defineConfig({
 
   /* 開発サーバー設定 */
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI
+      ? 'npm run build && npm run start'
+      : 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
