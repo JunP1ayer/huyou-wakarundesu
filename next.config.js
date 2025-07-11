@@ -13,16 +13,10 @@ const nextConfig = {
   
   // 実験的機能
   experimental: {
-    // Turbopack設定（旧turbo設定から移行）
-    turbopack: {
-      resolveAlias: {
-        canvas: './empty-module.js',
-      },
-    }
+    // Next.js 15では不要
   },
 
-  // ビルド設定
-  swcMinify: true,
+  // ビルド設定（Next.js 15では自動的にSWCが使用される）
   
   // 環境変数
   env: {
@@ -141,9 +135,6 @@ const nextConfig = {
 
   // 出力設定
   output: 'standalone',
-  
-  // トレース設定
-  outputFileTracing: true,
 }
 
 module.exports = withPWA(nextConfig)
