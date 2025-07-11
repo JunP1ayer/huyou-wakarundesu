@@ -80,9 +80,28 @@ export async function GET(request: Request) {
         userAgent: request.headers.get('user-agent')?.substring(0, 100)
       })
       
+      console.log('[AUTH CALLBACK] 🔄 Starting exchangeCodeForSession...')
       const result = await supabase.auth.exchangeCodeForSession(code)
+      console.log('[AUTH CALLBACK] 📦 Raw exchangeCodeForSession result:', {
+        hasResult: !!result,
+        resultType: typeof result,
+        resultKeys: result ? Object.keys(result) : [],
+        rawResult: JSON.stringify(result, null, 2)
+      })
+      
       data = result.data
       sessionError = result.error
+      
+      console.log('[AUTH CALLBACK] 📊 Processed result components:', {
+        dataType: typeof data,
+        dataNull: data === null,
+        dataUndefined: data === undefined,
+        dataKeys: data ? Object.keys(data) : [],
+        errorType: typeof sessionError,
+        errorNull: sessionError === null,
+        errorUndefined: sessionError === undefined,
+        errorMessage: sessionError?.message
+      })
       
       console.log('[AUTH CALLBACK] exchangeCodeForSession結果詳細:', {
         hasResult: !!result,
@@ -94,14 +113,37 @@ export async function GET(request: Request) {
       })
     } catch (exchangeException) {
       const exchangeEndTime = Date.now()
-      console.error('[AUTH CALLBACK] exchangeCodeForSession例外発生:', {
+      console.error('[AUTH CALLBACK] 🚨 exchangeCodeForSession例外発生:', {
         exceptionName: exchangeException instanceof Error ? exchangeException.name : 'Unknown',
         exceptionMessage: exchangeException instanceof Error ? exchangeException.message : String(exchangeException),
         exceptionStack: exchangeException instanceof Error ? exchangeException.stack?.split('\n').slice(0, 5).join('\n') : undefined,
         duration: exchangeEndTime - exchangeStartTime,
         codeUsed: code.substring(0, 20) + '...',
-        timestamp: new Date().toISOString()
+        codeLength: code.length,
+        timestamp: new Date().toISOString(),
+        requestHeaders: {
+          origin: request.headers.get('origin'),
+          referer: request.headers.get('referer'),
+          userAgent: request.headers.get('user-agent')?.substring(0, 50)
+        },
+        supabaseConfig: {
+          hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          urlPreview: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
+        }
       })
+      
+      // Try to get more details about the Supabase client state
+      try {
+        console.log('[AUTH CALLBACK] 🔍 Supabase client diagnostic:', {
+          clientType: typeof supabase,
+          authType: typeof supabase.auth,
+          authMethods: supabase.auth ? Object.getOwnPropertyNames(Object.getPrototypeOf(supabase.auth)) : []
+        })
+      } catch (diagError) {
+        console.error('[AUTH CALLBACK] ⚠️ Could not diagnose Supabase client:', diagError)
+      }
+      
       return NextResponse.redirect(new URL(`/login?error=exchange_exception&details=${encodeURIComponent(exchangeException instanceof Error ? exchangeException.message : 'Exchange failed')}`, request.url))
     }
     
@@ -118,16 +160,57 @@ export async function GET(request: Request) {
     })
     
     if (sessionError) {
-      console.error('[AUTH CALLBACK] セッション取得エラー詳細:', {
+      console.error('[AUTH CALLBACK] 🔴 SESSION ERROR - Comprehensive Analysis:', {
+        // Basic Error Info
+        errorExists: !!sessionError,
+        errorType: typeof sessionError,
+        errorConstructor: sessionError.constructor?.name,
+        
+        // Standard Error Properties
         message: sessionError.message,
-        status: sessionError.status,
         name: sessionError.name,
         code: sessionError.code,
-        // details: sessionError.details, // May not exist on all error types
-        // hint: sessionError.hint, // May not exist on all error types
-        stack: sessionError.stack?.split('\n').slice(0, 3).join('\n'),
+        status: sessionError.status,
+        
+        // Additional Properties (may not exist)
+        details: (sessionError as any).details || 'N/A',
+        hint: (sessionError as any).hint || 'N/A',
+        
+        // Stack Trace
+        hasStack: !!sessionError.stack,
+        stackPreview: sessionError.stack?.split('\n').slice(0, 3).join('\n'),
+        
+        // Request Context
+        codeUsedLength: code.length,
+        requestOrigin: requestUrl.origin,
+        timestamp: new Date().toISOString(),
+        
+        // Full Error Object
+        allErrorProperties: Object.getOwnPropertyNames(sessionError),
+        errorValues: Object.getOwnPropertyNames(sessionError).reduce((acc, key) => {
+          try {
+            acc[key] = (sessionError as any)[key];
+          } catch (e) {
+            acc[key] = '[Cannot access]';
+          }
+          return acc;
+        }, {} as Record<string, any>),
+        
+        // JSON Serialization
         fullErrorObject: JSON.stringify(sessionError, null, 2)
       })
+      
+      // Specific error analysis
+      if (sessionError.message?.includes('Invalid authorization code')) {
+        console.error('[AUTH CALLBACK] 🎯 DIAGNOSIS: Authorization code is invalid/expired/already used')
+      } else if (sessionError.message?.includes('redirect_uri_mismatch')) {
+        console.error('[AUTH CALLBACK] 🎯 DIAGNOSIS: Redirect URI mismatch between Google OAuth config and request')
+      } else if (sessionError.message?.includes('unauthorized_client')) {
+        console.error('[AUTH CALLBACK] 🎯 DIAGNOSIS: Google Client ID/Secret mismatch or unauthorized')
+      } else if (sessionError.status === 400) {
+        console.error('[AUTH CALLBACK] 🎯 DIAGNOSIS: HTTP 400 - Bad Request, likely OAuth configuration issue')
+      }
+      
       return NextResponse.redirect(new URL(`/login?error=auth_failed&details=${encodeURIComponent(sessionError.message)}&code=${encodeURIComponent(sessionError.code || 'unknown')}`, request.url))
     }
     
