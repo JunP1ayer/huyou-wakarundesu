@@ -265,7 +265,7 @@ export default function OnboardingWizard() {
         }
       }
       
-      if (e.name === 'AbortError') {
+      if (e instanceof Error && e.name === 'AbortError') {
         setError('リクエストがタイムアウトしました。再試行してください。')
         showToast('リクエストがタイムアウトしました', 'error')
         setIsLoading(false)

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { calcAllowance } from '@/lib/calcAllowance'
 import { debugAuthHeaders, debugSessionResponse, debugEnvironmentVars } from '@/lib/auth-debug'
 import { logConfigurationStatus } from '@/lib/config-check'
+import type { Database } from '@/types/supabase'
 import type { 
   ProfileCompleteRequest, 
   ProfileCompleteApiResponse, 
@@ -71,7 +72,7 @@ function createErrorResponse(
 /**
  * セッション検証の厳格化
  */
-async function validateSession(supabase: ReturnType<typeof createRouteHandlerClient>): Promise<
+async function validateSession(supabase: ReturnType<typeof createRouteHandlerClient<Database>>): Promise<
   | { isValid: true; session: { user: { id: string } } }
   | { isValid: false; errorResponse: NextResponse<ApiErrorResponse> }
 > {
@@ -242,7 +243,7 @@ export async function POST(request: Request): Promise<NextResponse<ProfileComple
       nodeEnv: process.env.NODE_ENV
     })
     
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     console.log(`[API] Supabase client created`)
     
     // 3. セッション検証
@@ -312,7 +313,16 @@ export async function POST(request: Request): Promise<NextResponse<ProfileComple
     const response: ProfileCompleteResponse = {
       success: true,
       allowance: calculatedValue,
-      profile: profileData
+      profile: {
+        user_id: profileData.user_id,
+        is_student: profileData.is_student!,
+        annual_income: profileData.annual_income!,
+        is_over_20h: profileData.is_over_20h!,
+        fuyou_line: profileData.fuyou_line!,
+        profile_completed: profileData.profile_completed!,
+        profile_completed_at: profileData.profile_completed_at!,
+        updated_at: profileData.updated_at
+      }
     }
 
     return NextResponse.json(response, { 

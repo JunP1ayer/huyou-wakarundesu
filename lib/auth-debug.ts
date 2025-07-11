@@ -10,7 +10,7 @@ export function debugAuthHeaders(headers: Headers) {
   console.log('[AUTH-DEBUG] Request headers:', {
     hasCookie: !!cookieHeader,
     cookieLength: cookieHeader?.length || 0,
-    cookiePreview: cookieHeader?.substring(0, 50) + (cookieHeader?.length > 50 ? '...' : ''),
+    cookiePreview: cookieHeader?.substring(0, 50) + ((cookieHeader && cookieHeader.length > 50) ? '...' : ''),
     hasAuth: !!authHeader,
     userAgent: headers.get('user-agent')?.substring(0, 50),
     origin: headers.get('origin'),
