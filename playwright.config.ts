@@ -23,7 +23,7 @@ export default defineConfig({
   /* 共通テスト設定 */
   use: {
     /* ベースURL（環境変数で切り替え可能） */
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || 'http://localhost:3333',
 
     /* トレース設定（失敗時のみ） */
     trace: 'on-first-retry',
@@ -92,15 +92,15 @@ export default defineConfig({
 
   /* 開発サーバー設定 */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    command: 'npm run e2e:start',
+    port: 3333,
+    reuseExistingServer: !!process.env.CI,
+    timeout: 120 * 1000,
     env: {
       /* テスト用環境変数 */
-      NODE_ENV: 'test',
-      NEXT_PUBLIC_SUPABASE_URL: process.env.TEST_SUPABASE_URL || 'https://test.supabase.co',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.TEST_SUPABASE_ANON_KEY || 'test-key',
+      NODE_ENV: 'production',
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key',
     }
   },
 

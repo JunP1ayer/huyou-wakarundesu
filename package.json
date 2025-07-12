@@ -12,6 +12,7 @@
     "predev": "node scripts/check-env.js --quick",
     "build": "next build",
     "start": "next start",
+    "e2e:start": "npm run build && npx next start -p 3333",
     "lint": "next lint --max-warnings 50",
     "type-check": "tsc --noEmit",
     "verify-env": "node scripts/verify-env.js",
