@@ -26,7 +26,10 @@ export const questions = [
 export type QuestionId = typeof questions[number]['id'];
 export type QuestionType = typeof questions[number]['type'];
 
-export type AnswerMap = Record<QuestionId, number | boolean | null>;
+// Legacy question format support for backward compatibility
+export type LegacyQuestionKey = 'question1' | 'question2' | 'question3' | 'question4';
+
+export type AnswerMap = Record<QuestionId, number | boolean | null> & Partial<Record<LegacyQuestionKey, unknown>>;
 
 export interface FuyouClassificationResult {
   category: string;
