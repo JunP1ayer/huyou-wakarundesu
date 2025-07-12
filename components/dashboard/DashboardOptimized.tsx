@@ -30,6 +30,9 @@ const SettingsModal = dynamic(
   { ssr: false }
 )
 
+// 型インポート用の動的インポート
+type UserPreferences = import('./SettingsModal').UserPreferences
+
 /**
  * 最適化されたダッシュボードコンポーネント
  * - バッチAPI使用で並列データ取得
@@ -40,7 +43,7 @@ export default function DashboardOptimized({ isDemoMode = false }: { isDemoMode?
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // 設定保存機能
-  const handleSaveSettings = async (newSettings: any) => {
+  const handleSaveSettings = async (newSettings: UserPreferences) => {
     try {
       // 実際の実装ではSupabaseに保存
       console.log('設定を保存:', newSettings)

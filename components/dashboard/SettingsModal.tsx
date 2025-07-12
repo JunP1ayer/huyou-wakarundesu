@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { X, Save, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Save, RefreshCw, AlertTriangle } from 'lucide-react'
 
 // ユーザー設定の型定義
 export interface UserPreferences {
@@ -71,7 +71,7 @@ export default function SettingsModal({
         document.body.style.overflow = 'unset'
       }
     }
-  }, [isOpen])
+  }, [isOpen, handleClose])
 
   // フォーカストラップ（アクセシビリティ対応）
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -135,7 +135,7 @@ export default function SettingsModal({
     }
   }
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (hasChanges) {
       if (confirm('変更が保存されていません。閉じてもよろしいですか？')) {
         setSettings(currentSettings) // 変更を破棄
@@ -144,7 +144,7 @@ export default function SettingsModal({
     } else {
       onClose()
     }
-  }
+  }, [hasChanges, currentSettings, onClose])
 
   const handleReset = () => {
     if (confirm('すべての設定をデフォルトに戻しますか？')) {
@@ -152,7 +152,7 @@ export default function SettingsModal({
     }
   }
 
-  const handleInputChange = (key: keyof UserPreferences, value: any) => {
+  const handleInputChange = (key: keyof UserPreferences, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }))
     // エラーをクリア
     if (errors[key]) {
