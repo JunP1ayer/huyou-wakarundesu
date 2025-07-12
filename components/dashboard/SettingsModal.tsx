@@ -46,6 +46,18 @@ export default function SettingsModal({
   const modalRef = useRef<HTMLDivElement>(null)
   const firstInputRef = useRef<HTMLSelectElement>(null)
 
+  // handleClose関数の定義（useEffectで使用されるため先に定義）
+  const handleClose = useCallback(() => {
+    if (hasChanges) {
+      if (confirm('変更が保存されていません。閉じてもよろしいですか？')) {
+        setSettings(currentSettings) // 変更を破棄
+        onClose()
+      }
+    } else {
+      onClose()
+    }
+  }, [hasChanges, currentSettings, onClose])
+
   // 設定変更の検出
   useEffect(() => {
     const changed = JSON.stringify(settings) !== JSON.stringify(currentSettings)
@@ -134,17 +146,6 @@ export default function SettingsModal({
       setIsSaving(false)
     }
   }
-
-  const handleClose = useCallback(() => {
-    if (hasChanges) {
-      if (confirm('変更が保存されていません。閉じてもよろしいですか？')) {
-        setSettings(currentSettings) // 変更を破棄
-        onClose()
-      }
-    } else {
-      onClose()
-    }
-  }, [hasChanges, currentSettings, onClose])
 
   const handleReset = () => {
     if (confirm('すべての設定をデフォルトに戻しますか？')) {
