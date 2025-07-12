@@ -76,8 +76,8 @@ function validateEnvVar(key, value) {
       break
       
     case 'NEXT_PUBLIC_SUPABASE_ANON_KEY':
-      if (!value.startsWith('eyJ')) {
-        return { valid: false, message: 'Invalid format (should start with "eyJ")' }
+      if (!value.startsWith('eyJ') || value.length < 6) {
+        return { valid: false, message: 'Invalid format (should start with "eyJ" and be a valid JWT)' }
       }
       break
       

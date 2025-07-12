@@ -168,6 +168,22 @@ expect.extend({
         pass: false,
       }
     }
+  },
+
+  // 有限数値チェック用のマッチャー
+  toBeFinite(received) {
+    const pass = Number.isFinite(received)
+    if (pass) {
+      return {
+        message: () => `${received} は有限数値です`,
+        pass: true,
+      }
+    } else {
+      return {
+        message: () => `${received} は有限数値ではありません（Infinity, -Infinity, または NaN）`,
+        pass: false,
+      }
+    }
   }
 })
 

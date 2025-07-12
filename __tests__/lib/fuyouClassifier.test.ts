@@ -184,6 +184,15 @@ describe('calculateRemaining - 残り収入計算', () => {
 })
 
 describe('境界値テスト - 重要な金額での動作確認', () => {
+  // テスト用の基本回答データ
+  const baseAnswers: AnswerMap = {
+    question1: '学生',
+    question2: '週20時間未満',
+    question3: '500人以下',
+    question4: '扶養に入っている',
+    question5: '103万円以下に抑えたい'
+  }
+
   const testCases = [
     { amount: 1030000, expected: '103万円扶養' },
     { amount: 1030001, expected: '103万円超過' },
@@ -207,6 +216,15 @@ describe('境界値テスト - 重要な金額での動作確認', () => {
 })
 
 describe('パフォーマンステスト', () => {
+  // テスト用の基本回答データ
+  const baseAnswers: AnswerMap = {
+    question1: '学生',
+    question2: '週20時間未満',
+    question3: '500人以下',
+    question4: '扶養に入っている',
+    question5: '103万円以下に抑えたい'
+  }
+
   test('大量の計算処理でもレスポンス時間が許容範囲内', () => {
     const startTime = Date.now()
     
