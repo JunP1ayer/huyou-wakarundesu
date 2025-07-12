@@ -1,6 +1,6 @@
 // Jest セットアップファイル - テスト環境の初期設定
 
-import '@testing-library/jest-dom'
+require('@testing-library/jest-dom')
 
 // Next.js 設定のモック
 jest.mock('next/navigation', () => ({

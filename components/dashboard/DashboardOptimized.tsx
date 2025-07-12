@@ -20,17 +20,15 @@ const DashboardChart = dynamic(
   }
 )
 
-// TODO: BankConnectionManager コンポーネントを作成
-// const BankConnectionManager = dynamic(
-//   () => import('./BankConnectionManager'),
-//   { ssr: false }
-// )
+const BankConnectionManager = dynamic(
+  () => import('./BankConnectionManager'),
+  { ssr: false }
+)
 
-// TODO: SettingsModal コンポーネントを作成
-// const SettingsModal = dynamic(
-//   () => import('./SettingsModal'),
-//   { ssr: false }
-// )
+const SettingsModal = dynamic(
+  () => import('./SettingsModal'),
+  { ssr: false }
+)
 
 /**
  * 最適化されたダッシュボードコンポーネント
@@ -38,8 +36,22 @@ const DashboardChart = dynamic(
  * - Dynamic importでコードスプリッティング
  * - Memoizationでリレンダリング最適化
  */
-export default function DashboardOptimized() {
-  const [, setShowSettings] = useState(false)
+export default function DashboardOptimized({ isDemoMode = false }: { isDemoMode?: boolean } = {}) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  // 設定保存機能
+  const handleSaveSettings = async (newSettings: any) => {
+    try {
+      // 実際の実装ではSupabaseに保存
+      console.log('設定を保存:', newSettings)
+      // モック実装：2秒待機
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      refetch() // データを再取得
+    } catch (error) {
+      console.error('設定の保存に失敗:', error)
+      throw error
+    }
+  }
 
   // 🚀 最適化されたデータ取得（バッチAPI使用）
   const {
@@ -157,7 +169,7 @@ export default function DashboardOptimized() {
           <h1 className="text-2xl font-bold text-gray-900">ダッシュボード</h1>
         </div>
         <button
-          onClick={() => setShowSettings(true)}
+          onClick={() => setIsSettingsOpen(true)}
           className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         >
           <Settings className="w-5 h-5" />
@@ -190,17 +202,14 @@ export default function DashboardOptimized() {
         </div>
       )}
 
-      {/* TODO: 銀行連携管理（Dynamic Import） - コンポーネント作成後に有効化 */}
-      {/* {!isDemoMode && (
+      {/* 銀行連携管理（Dynamic Import） */}
+      {!isDemoMode && (
         <Suspense fallback={<div>銀行連携を読み込み中...</div>}>
           <BankConnectionManager
-            bankConnected={bankConnected}
-            bankInfo={bankInfo}
-            onConnectionChange={refetch}
-            showToast={showToast}
+            onConnectionChange={() => refetch()}
           />
         </Suspense>
-      )} */}
+      )}
 
       {/* 通知設定 */}
       <RequestPermission />
@@ -220,17 +229,26 @@ export default function DashboardOptimized() {
         )}
       </div>
 
-      {/* TODO: 設定モーダル（Dynamic Import） - コンポーネント作成後に有効化 */}
-      {/* {showSettings && (
+      {/* 設定モーダル（Dynamic Import） */}
+      {isSettingsOpen && (
         <Suspense fallback={<div>設定を読み込み中...</div>}>
           <SettingsModal
-            isOpen={showSettings}
-            onClose={() => setShowSettings(false)}
-            currentData={currentData}
-            onUpdate={refetch}
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            currentSettings={{
+              fuyouLine: currentData?.profile?.fuyou_line ?? 1030000,
+              isStudent: currentData?.profile?.is_student ?? false,
+              workSchedule: 'partTime',
+              notificationEnabled: true,
+              thresholdWarning: 80,
+              autoSync: true,
+              currency: 'JPY',
+              language: 'ja',
+            }}
+            onSave={handleSaveSettings}
           />
         </Suspense>
-      )} */}
+      )}
 
 
       {/* パフォーマンス情報（開発環境） */}
