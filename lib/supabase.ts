@@ -158,6 +158,9 @@ export interface UserStats {
   ytd_income: number
   remaining: number
   remaining_hours: number
+  transaction_count: number
+  last_calculated: string
+  created_at: string
   updated_at: string
 }
 

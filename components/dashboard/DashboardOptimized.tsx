@@ -79,14 +79,14 @@ export default function DashboardOptimized({ isDemoMode = false }: { isDemoMode?
   const remainingCalculation = useMemo(() => {
     if (!currentData?.profile || !currentData?.stats) return null
     
-    const remainingAmount = calculateRemaining(
+    const remainingResult = calculateRemaining(
       currentData.stats.ytd_income,
-      currentData.profile.fuyou_line
+      currentData.profile.fuyou_line,
+      currentData.profile.hourly_wage
     )
+    const remainingAmount = remainingResult.remainingAmount
     
-    const remainingHours = currentData.profile.hourly_wage > 0 
-      ? remainingAmount / currentData.profile.hourly_wage 
-      : 0
+    const remainingHours = remainingResult.remainingHours
     
     return {
       remainingAmount,

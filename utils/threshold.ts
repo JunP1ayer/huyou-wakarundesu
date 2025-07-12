@@ -30,6 +30,7 @@ export interface ThresholdStatus {
   remaining: number
   message: string
   severity: 'low' | 'medium' | 'high'
+  status: 'safe' | 'warning' | 'danger' | 'exceeded'
 }
 
 export function getThresholdStatus(income: number, limit: number = 1030000): ThresholdStatus {
@@ -38,14 +39,28 @@ export function getThresholdStatus(income: number, limit: number = 1030000): Thr
   const isOver = isOverThreshold(income, limit)
   
   let severity: 'low' | 'medium' | 'high' = 'low'
-  if (percentage >= 80) severity = 'high'
-  else if (percentage >= 70) severity = 'medium'
+  let status: 'safe' | 'warning' | 'danger' | 'exceeded' = 'safe'
+  
+  if (percentage >= 100) {
+    severity = 'high'
+    status = 'exceeded'
+  } else if (percentage >= 95) {
+    severity = 'high'
+    status = 'danger'
+  } else if (percentage >= 80) {
+    severity = 'high'
+    status = 'danger'
+  } else if (percentage >= 70) {
+    severity = 'medium'
+    status = 'warning'
+  }
   
   return {
     isOverThreshold: isOver,
     percentage,
     remaining,
     message: formatThresholdMessage(income, limit),
-    severity
+    severity,
+    status
   }
 }

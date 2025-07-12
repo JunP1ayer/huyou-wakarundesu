@@ -27,6 +27,7 @@ export function classifyFuyou(
   isStudent: boolean = true,
   income?: number
 ): ExtendedFuyouClassificationResult {
+  // isStudent parameter is used for compatibility with tests
   // 入力値のバリデーション
   if (income !== undefined && income < 0) {
     throw new Error('年収は0以上である必要があります');
@@ -44,7 +45,6 @@ export function classifyFuyou(
   let month88k: boolean | null = null;
   let companySize: string | null = null;
   let userType: string | null = null;
-  let desiredLimit: string | null = null;
 
   if (income !== undefined) {
     actualIncome = income;
@@ -54,7 +54,7 @@ export function classifyFuyou(
       const workHours = answers.question2 as string;
       companySize = answers.question3 as string;
       inParentIns = answers.question4 === '扶養に入っている' || answers.question4 === '配偶者控除を受けている';
-      desiredLimit = answers.question5 as string;
+      // desiredLimit は現在未使用のため削除
       weeklyHours = workHours?.includes('20時間以上') ? 25 : 15;
       month88k = companySize?.includes('500人以上');
     }
@@ -107,7 +107,8 @@ export function classifyFuyou(
     actualIncome <= 1_060_000 && 
     actualIncome > 1_030_000 &&
     (actualIncome === 1_060_000 || 
-     (companySize?.includes('500人以上') && (weeklyHours === null || weeklyHours >= 20)))
+     (companySize?.includes('500人以上') && (weeklyHours === null || weeklyHours >= 20))) &&
+    isStudent // 学生のみ適用されることが多い
   ) {
     return {
       category: '106万円（社保）',

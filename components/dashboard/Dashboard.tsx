@@ -344,7 +344,7 @@ export default function Dashboard() {
                   上限額: <strong>{formatCurrency(profile.fuyou_line)}</strong>
                 </p>
                 <p className="text-xs text-blue-700">
-                  あと <strong>{formatCurrency(calculateRemaining(stats.ytd_income, profile.fuyou_line))}</strong> 稼ぐことができます
+                  あと <strong>{formatCurrency(calculateRemaining(stats.ytd_income, profile.fuyou_line, profile.hourly_wage).remainingAmount)}</strong> 稼ぐことができます
                 </p>
               </div>
             </div>
@@ -453,7 +453,7 @@ export default function Dashboard() {
                 <h4 className="font-bold mb-1">設定完了！</h4>
                 <p className="text-sm">
                   あなたの上限は <strong>{data ? formatCurrency(data.profile.fuyou_line) : ''}</strong> です。
-                  あと <strong>{data ? formatCurrency(calculateRemaining(data.stats.ytd_income, data.profile.fuyou_line)) : ''}</strong> 稼げます 🎉
+                  あと <strong>{data ? formatCurrency(calculateRemaining(data.stats.ytd_income, data.profile.fuyou_line, data.profile.hourly_wage).remainingAmount) : ''}</strong> 稼げます 🎉
                 </p>
               </div>
               <button 
