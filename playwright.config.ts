@@ -26,7 +26,7 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || 'http://localhost:3333',
 
     /* トレース設定（失敗時のみ） */
-    trace: 'on-first-retry',
+    trace: 'on',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
 
