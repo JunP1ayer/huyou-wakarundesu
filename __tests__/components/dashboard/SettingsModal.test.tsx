@@ -90,14 +90,14 @@ describe('SettingsModal', () => {
       />
     )
 
-    const saveButton = screen.getByText('保存')
+    const saveButton = screen.getByRole('button', { name: /保存/ })
     expect(saveButton).toBeDisabled()
 
     // 設定を変更
     const fuyouLineSelect = screen.getByLabelText('扶養限度額')
     fireEvent.change(fuyouLineSelect, { target: { value: '1300000' } })
 
-    expect(saveButton).not.toBeDisabled()
+    expect(saveButton).toBeEnabled()
   })
 
   it('学生チェックボックスを切り替えできる', () => {
@@ -154,7 +154,7 @@ describe('SettingsModal', () => {
     const fuyouLineSelect = screen.getByLabelText('扶養限度額')
     fireEvent.change(fuyouLineSelect, { target: { value: '1300000' } })
 
-    const saveButton = screen.getByText('保存')
+    const saveButton = screen.getByRole('button', { name: /保存/ })
     fireEvent.click(saveButton)
 
     await waitFor(() => {
@@ -250,11 +250,16 @@ describe('SettingsModal', () => {
       />
     )
 
-    // 警告閾値を無効な値に設定（150%）
+    // 警告閾値を無効な値に設定（35% - 最小値50%を下回る）
     const thresholdSlider = screen.getByLabelText('警告の閾値（限度額の何%で通知するか）')
-    fireEvent.change(thresholdSlider, { target: { value: '150' } })
+    // HTML range inputの制約を回避するため、直接valueプロパティを設定
+    Object.defineProperty(thresholdSlider, 'value', {
+      writable: true,
+      value: '35'
+    })
+    fireEvent.change(thresholdSlider, { target: { value: '35' } })
 
-    const saveButton = screen.getByText('保存')
+    const saveButton = screen.getByRole('button', { name: /保存/ })
     fireEvent.click(saveButton)
 
     await waitFor(() => {
@@ -280,7 +285,7 @@ describe('SettingsModal', () => {
     const fuyouLineSelect = screen.getByLabelText('扶養限度額')
     fireEvent.change(fuyouLineSelect, { target: { value: '1300000' } })
 
-    const saveButton = screen.getByText('保存')
+    const saveButton = screen.getByRole('button', { name: /保存/ })
     fireEvent.click(saveButton)
 
     await waitFor(() => {

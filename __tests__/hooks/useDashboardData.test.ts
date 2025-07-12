@@ -3,7 +3,7 @@
  * バッチAPI統合とキャッシュ機能のテスト
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useDashboardData } from '@/hooks/useDashboardData'
 
 // fetch のモック設定
@@ -264,7 +264,9 @@ describe('useDashboardData カスタムフック', () => {
       } as Response)
 
       // refetch 実行
-      await result.current.refetch()
+      await act(async () => {
+        await result.current.refetch()
+      })
 
       expect(result.current.data?.stats.ytd_income).toBe(750000)
       expect(mockFetch).toHaveBeenCalledTimes(2)
@@ -284,23 +286,34 @@ describe('useDashboardData カスタムフック', () => {
       })
 
       // refetch時の遅延をシミュレート
-      mockFetch.mockImplementationOnce(() =>
-        new Promise(resolve =>
-          setTimeout(() =>
-            resolve({
-              ok: true,
-              status: 200,
-              json: async () => mockSuccessResponse,
-            } as Response), 100)
-        )
-      )
+      let resolvePromise: () => void
+      const delayedPromise = new Promise<Response>((resolve) => {
+        resolvePromise = () => resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockSuccessResponse,
+        } as Response)
+      })
+      
+      mockFetch.mockReturnValueOnce(delayedPromise)
 
-      const refetchPromise = result.current.refetch()
+      let refetchPromise: Promise<void>
+      
+      // refetchを開始
+      await act(async () => {
+        refetchPromise = result.current.refetch()
+      })
+      
+      // ローディング状態を確認
+      await waitFor(() => {
+        expect(result.current.loading).toBe(true)
+      })
 
-      // refetch中はローディング状態
-      expect(result.current.loading).toBe(true)
-
-      await refetchPromise
+      // プロミスを解決して完了を待つ
+      await act(async () => {
+        resolvePromise!()
+        await refetchPromise!
+      })
 
       expect(result.current.loading).toBe(false)
     })

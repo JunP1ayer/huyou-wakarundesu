@@ -20,6 +20,7 @@ interface DashboardBatchResponse {
     execution_time_ms: number
     parallel_requests: number
     failed?: boolean
+    client_total_time_ms?: number
   }
 }
 
@@ -33,7 +34,7 @@ interface UseDashboardDataReturn {
   loading: boolean
   error: string | null
   authError: boolean
-  performance: DashboardBatchResponse['performance'] | null
+  performance: (DashboardBatchResponse['performance'] & { client_total_time_ms?: number }) | null
   refetch: () => Promise<void>
 }
 
@@ -81,8 +82,8 @@ export function useDashboardData(): UseDashboardDataReturn {
 
       // パフォーマンス情報を記録
       setPerformance({
-        ...batchData.performance
-        // client_total_time_ms: Date.now() - startTime // 型エラー回避のため一時的にコメントアウト
+        ...batchData.performance,
+        client_total_time_ms: Date.now() - startTime
       })
 
       // エラーハンドリング

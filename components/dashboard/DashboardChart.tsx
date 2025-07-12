@@ -53,7 +53,7 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
           <span className="text-sm font-medium">
             {thresholdStatus.severity === 'low' && '安全'}
             {thresholdStatus.severity === 'medium' && '注意'}
-            {thresholdStatus.severity === 'high' && '危険'}
+            {thresholdStatus.severity === 'high' && (thresholdStatus.status === 'exceeded' ? '超過' : '危険')}
           </span>
         </div>
         <p className="text-sm">{thresholdStatus.message}</p>
@@ -72,6 +72,11 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
           <div
             className={`h-3 rounded-full transition-all duration-500 ease-out ${getProgressColor()}`}
             style={{ width: `${progressPercentage}%` }}
+            role="progressbar"
+            aria-valuenow={Math.round(progressPercentage)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`扶養限度額の${progressPercentage.toFixed(1)}%を達成`}
           />
         </div>
         
@@ -81,7 +86,7 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
         </div>
       </div>
 
-      {/* 残り金額 */}
+      {/* 統計情報 */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gray-50 p-4 rounded-lg">
           <p className="text-sm text-gray-600">残り可能収入</p>
@@ -91,15 +96,16 @@ export default function DashboardChart({ stats, profile }: DashboardChartProps) 
         </div>
         
         <div className="bg-gray-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600">残り可能時間</p>
+          <p className="text-sm text-gray-600">取引件数</p>
           <p className="text-xl font-bold text-gray-900">
-            {stats.remaining_hours}時間
+            {stats.transaction_count}件
           </p>
         </div>
       </div>
 
       {/* 詳細情報 */}
       <div className="text-xs text-gray-500 space-y-1">
+        <p>最終計算: {new Date(stats.last_calculated).toLocaleString('ja-JP')}</p>
         <p>データ更新: {new Date(stats.updated_at).toLocaleString('ja-JP')}</p>
       </div>
     </div>

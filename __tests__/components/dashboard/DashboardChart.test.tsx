@@ -32,13 +32,13 @@ jest.mock('@/utils/threshold', () => ({
   getThresholdStatus: jest.fn((income, limit) => {
     const percentage = (income / limit) * 100
     if (percentage < 80) {
-      return { status: 'safe', label: '安全', message: '扶養範囲内です' }
+      return { severity: 'low', status: 'safe', label: '安全', message: '扶養範囲内です' }
     } else if (percentage < 95) {
-      return { status: 'warning', label: '注意', message: '限度額に近づいています' }
+      return { severity: 'medium', status: 'warning', label: '注意', message: '限度額に近づいています' }
     } else if (percentage < 100) {
-      return { status: 'danger', label: '危険', message: '限度額まで僅かです' }
+      return { severity: 'high', status: 'danger', label: '危険', message: '限度額まで僅かです' }
     } else {
-      return { status: 'exceeded', label: '超過', message: '限度額を超過しています' }
+      return { severity: 'high', status: 'exceeded', label: '超過', message: '限度額を超過しています' }
     }
   })
 }))
@@ -148,7 +148,9 @@ describe('DashboardChart コンポーネント', () => {
       
       expect(screen.getByText('¥0')).toBeInTheDocument()
       expect(screen.getByText('0.0%')).toBeInTheDocument()
-      expect(screen.getByText('¥1,030,000')).toBeInTheDocument() // 残り金額は限度額と同じ
+      // 残り可能収入のセクションで限度額と同じ金額が表示されることを確認
+      const remainingAmounts = screen.getAllByText('¥1,030,000')
+      expect(remainingAmounts.length).toBeGreaterThan(0)
     })
 
     test('限度額ちょうどの場合', () => {
@@ -174,14 +176,14 @@ describe('DashboardChart コンポーネント', () => {
       
       // 日本語ロケールでの日時表示をテスト
       expect(screen.getByText(/最終計算:/)).toBeInTheDocument()
-      expect(screen.getByText(/2025/)).toBeInTheDocument()
+      expect(screen.getByText(/最終計算:.*2025/)).toBeInTheDocument()
     })
 
     test('データ更新日時が正しく表示される', () => {
       render(<DashboardChart stats={mockStats} profile={mockProfile} />)
       
       expect(screen.getByText(/データ更新:/)).toBeInTheDocument()
-      expect(screen.getByText(/2025/)).toBeInTheDocument()
+      expect(screen.getByText(/データ更新:.*2025/)).toBeInTheDocument()
     })
   })
 
