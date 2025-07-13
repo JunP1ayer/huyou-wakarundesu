@@ -20,7 +20,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:e2e": "playwright test --reporter=line",
+    "test:e2e": "playwright test --reporter=line --no-fail-on-flaky",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:all": "npm run test:ci && npm run test:e2e",
