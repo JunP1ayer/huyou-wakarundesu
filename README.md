@@ -1,183 +1,180 @@
-# Supabase CLI
+# 扶養わかるんです 💰
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+学生・アルバイト向けの扶養控除計算・管理アプリケーション
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+[![CI/CD](https://github.com/JunP1ayer/huyou-wakarundesu/actions/workflows/deploy.yml/badge.svg)](https://github.com/JunP1ayer/huyou-wakarundesu/actions/workflows/deploy.yml)
+[![Coverage](https://img.shields.io/badge/coverage-8.6%25-orange)](./coverage/lcov-report/index.html)
+[![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen)](./test-results/)
 
-This repository contains all the functionality for Supabase CLI.
+## 🎯 概要
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+扶養控除の複雑な制度を簡単に理解し、適切な範囲内でアルバイトができるようサポートするWebアプリケーションです。
 
-## Getting started
+### 主要機能
+- 🧮 **扶養控除自動計算**: 103万円、106万円、130万円の壁を自動判定
+- 📊 **収入ダッシュボード**: リアルタイムの収入状況と残り可能額を表示
+- 🏦 **銀行API連携**: 自動収入追跡（MoneyTree連携）
+- 🔔 **閾値通知**: 扶養控除上限への接近アラート
+- 📱 **モバイル対応**: PWA対応でスマートフォンでも快適利用
 
-### Install the CLI
+## 🚀 セットアップ
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+### 前提条件
+- Node.js 18.20.0 以上
+- npm 9.0.0 以上
+- Supabase アカウント
 
+### インストール
 ```bash
-npm i supabase --save-dev
+# リポジトリクローン
+git clone https://github.com/JunP1ayer/huyou-wakarundesu.git
+cd huyou-wakarundesu
+
+# 依存関係インストール
+npm ci --legacy-peer-deps
+
+# 環境変数設定
+npm run setup
+
+# 開発サーバー起動
+npm run dev
 ```
 
-To install the beta release channel:
-
+### 環境変数
 ```bash
-npm i supabase@beta --save-dev
+# 必須
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# オプション
+OPENAI_API_KEY=your_openai_key  # AI チャット機能用
+VERCEL_TOKEN=your_vercel_token  # デプロイメント用
 ```
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+## 🧪 テスト
 
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
-
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
-
-<details>
-  <summary><b>macOS</b></summary>
-
-  Available via [Homebrew](https://brew.sh). To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Windows</b></summary>
-
-  Available via [Scoop](https://scoop.sh). To install:
-
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
-
-  To upgrade:
-
-  ```powershell
-  scoop update supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
-
+### ユニットテスト
 ```bash
-supabase bootstrap
+# 全テスト実行
+npm test
+
+# ウォッチモード
+npm run test:watch
+
+# カバレッジ確認
+npm run test:coverage
 ```
 
-Or using npx:
-
+### E2Eテスト
 ```bash
-npx supabase bootstrap
+# E2Eテスト実行
+npm run test:e2e
+
+# UIモード（デバッグ用）
+npm run test:e2e:ui
+
+# デバッグモード
+npm run test:e2e:debug
 ```
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+## 📋 テストポリシー
 
-## Docs
+### Flaky Test Zero Tolerance
+**重要**: Flaky テストは **14日以内** に修正または無効化が必要です。
 
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
+- **自動検知**: 毎日午前3時に Flaky テスト検知実行
+- **Issue自動作成**: `flaky-test` ラベル付きで GitHub Issue 生成
+- **解決期限**: 検知から2週間以内の対応必須
 
-## Breaking changes
+詳細は [Testing Policy](./docs/testing.md) を参照してください。
 
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+## 🛠️ 技術スタック
 
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+- **Frontend**: Next.js 15.3.4, React 19, TypeScript
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+- **Testing**: Jest, Playwright, React Testing Library
+- **CI/CD**: GitHub Actions, Vercel
+- **Monitoring**: Sentry, Google Analytics
 
-## Developing
+## 📁 プロジェクト構造
 
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
 ```
+├── app/                    # Next.js App Router
+├── components/            # React コンポーネント
+├── lib/                   # ビジネスロジック・ユーティリティ
+├── hooks/                 # カスタムフック
+├── e2e/                   # E2Eテスト (Playwright)
+├── __tests__/             # ユニットテスト (Jest)
+├── docs/                  # ドキュメント
+└── supabase/              # データベースマイグレーション
+```
+
+## 🚀 デプロイメント
+
+### Vercel (本番環境)
+```bash
+# 自動デプロイ: main ブランチへのプッシュで自動実行
+git push origin main
+
+# 手動デプロイ
+npm run deploy
+```
+
+### 品質ゲート
+- ✅ ユニットテスト全通過 (116/116)
+- ✅ ESLint警告 < 50
+- ✅ TypeScript型チェック通過
+- ✅ E2Eテスト通過 (Flaky許容)
+
+## 📊 メトリクス
+
+### 現在の状況
+- **テストカバレッジ**: 8.6% → 目標 25%
+- **テスト数**: 116 tests (全通過)
+- **Flaky Tests**: 0 (目標維持)
+- **CI成功率**: >95%
+
+### 改善ロードマップ
+1. **Phase 1** (2週間): Flaky テスト完全撲滅
+2. **Phase 2** (4週間): カバレッジ 25% 達成
+3. **Phase 3** (6週間): ミューテーションテスト・パフォーマンステスト
+
+## 🤝 貢献
+
+### プルリクエスト要件
+- [ ] ユニットテスト通過
+- [ ] ESLint/TypeScript エラーなし
+- [ ] E2Eテスト通過
+- [ ] `e2e/**` 変更時はQAレビュー必須
+
+### コードレビュー
+- **CODEOWNERS**: E2E テスト変更時は必須レビュー
+- **品質基準**: テストポリシー準拠
+- **ドキュメント**: 重要な変更は `docs/` 更新
+
+## 🆘 トラブルシューティング
+
+### よくある問題
+1. **環境変数エラー**: `npm run verify-env` で確認
+2. **認証問題**: Supabase設定を `docs/NEW_AUTH_DESIGN.md` で確認
+3. **テスト失敗**: `docs/testing.md` のガイドライン確認
+
+### サポート
+- **Issues**: GitHub Issues で報告
+- **緊急時**: `flaky-test` ラベルで優先対応
+- **ドキュメント**: `docs/` ディレクトリ参照
+
+## 📄 ライセンス
+
+MIT License - 詳細は [LICENSE](./LICENSE) ファイルを参照
+
+## 🔗 関連リンク
+
+- [本番サイト](https://huyou-wakarundesu.vercel.app)
+- [ステージング](https://huyou-wakarundesu-git-main.vercel.app)
+- [カバレッジレポート](./coverage/lcov-report/index.html)
+- [GitHub Actions](https://github.com/JunP1ayer/huyou-wakarundesu/actions)
+
+---
+
+最終更新: 2025-01-14

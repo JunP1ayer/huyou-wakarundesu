@@ -1,0 +1,141 @@
+name: Flaky Test Detection
+
+on:
+  schedule:
+    # 毎日午前3時（JST）に実行
+    - cron: '0 18 * * *'  # UTC 18:00 = JST 03:00
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  flaky-detection:
+    name: Detect Flaky Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.20.2'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        
+      - name: Run E2E tests with flaky detection
+        id: flaky-test
+        run: |
+          # failOnFlaky=true でテスト実行
+          FLAKY_EXIT_CODE=0
+          npx playwright test --fail-on-flaky --reporter=line || FLAKY_EXIT_CODE=$?
+          
+          echo "flaky_detected=$([[ $FLAKY_EXIT_CODE -ne 0 ]] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
+          echo "exit_code=$FLAKY_EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          # テスト結果の詳細を保存
+          if [[ $FLAKY_EXIT_CODE -ne 0 ]]; then
+            echo "🔍 Flaky tests detected with exit code: $FLAKY_EXIT_CODE"
+            npx playwright test --fail-on-flaky --reporter=json > flaky-results.json || true
+          fi
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          CI: true
+          
+      - name: Create GitHub Issue for Flaky Tests
+        if: steps.flaky-test.outputs.flaky_detected == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const date = new Date().toISOString().split('T')[0];
+            
+            // 既存のFlaky Issue確認
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'flaky-test',
+              state: 'open'
+            });
+            
+            // 本日分のIssueがすでに存在するかチェック
+            const todayIssue = issues.data.find(issue => 
+              issue.title.includes(date)
+            );
+            
+            if (todayIssue) {
+              console.log(`Today's flaky test issue already exists: ${todayIssue.html_url}`);
+              return;
+            }
+            
+            // 詳細情報の取得
+            let testResults = 'Test results not available';
+            try {
+              if (fs.existsSync('flaky-results.json')) {
+                const results = JSON.parse(fs.readFileSync('flaky-results.json', 'utf8'));
+                testResults = `\`\`\`json\n${JSON.stringify(results, null, 2)}\`\`\``;
+              }
+            } catch (error) {
+              console.log('Failed to read test results:', error.message);
+            }
+            
+            const issueBody = `
+            ## 🔍 Flaky Test Detection Report
+            
+            **Detection Date:** ${date}
+            **Workflow Run:** ${context.runId}
+            **Repository:** ${context.repo.owner}/${context.repo.repo}
+            
+            ### ⚠️ Status
+            Flaky tests were detected during automated testing with \`fail-on-flaky\` enabled.
+            
+            ### 📋 Action Required
+            - [ ] Investigate flaky test causes
+            - [ ] Fix or improve test stability
+            - [ ] Update selectors or wait conditions if needed
+            - [ ] Consider test environment issues
+            
+            ### 🎯 Resolution Timeline
+            **Deadline:** ${new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} (2 weeks from detection)
+            
+            ### 📊 Test Results
+            ${testResults}
+            
+            ### 🔗 Related Links
+            - [Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            - [Testing Documentation](${context.payload.repository.html_url}/blob/main/docs/testing.md)
+            
+            ---
+            **Note:** This issue was automatically created by the Flaky Test Detection workflow.
+            Please address within 2 weeks to maintain test suite reliability.
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔍 Flaky Test Detection - ${date}`,
+              body: issueBody,
+              labels: ['flaky-test', 'priority:medium', 'type:testing']
+            });
+            
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flaky-detection-results-${{ github.run_id }}
+          path: |
+            test-results/
+            flaky-results.json
+            playwright-report/
+          retention-days: 30
+          
+      - name: Report Success
+        if: steps.flaky-test.outputs.flaky_detected == 'false'
+        run: |
+          echo "✅ No flaky tests detected. Test suite stability confirmed."
+          echo "Last checked: $(date)"

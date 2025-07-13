@@ -12,6 +12,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  /* 暫定措置: Flaky テスト対応（2週間以内に完全撲滅予定） */
+  failOnFlaky: false,
   
   /* レポート設定 */
   reporter: [

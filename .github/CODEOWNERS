@@ -1,0 +1,18 @@
+# Global ownership
+* @JunP1ayer
+
+# E2E tests require QA review
+e2e/** @JunP1ayer
+playwright.config.ts @JunP1ayer
+
+# Critical configuration files
+.github/workflows/** @JunP1ayer
+package.json @JunP1ayer
+
+# Testing and CI
+jest.config.js @JunP1ayer
+.github/workflows/flaky-report.yml @JunP1ayer
+
+# Documentation
+docs/** @JunP1ayer
+README.md @JunP1ayer
