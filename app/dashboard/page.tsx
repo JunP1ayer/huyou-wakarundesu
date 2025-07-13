@@ -4,6 +4,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import MonthlyIncomeInput from '@/components/income/MonthlyIncomeInput'
 import { getSupportTypeLabel, getInsuranceLabel } from '@/lib/profile-validation'
 import { getCurrentYearMonth, formatCurrency } from '@/lib/income-manager'
+import { DashboardLegalFooter } from '@/components/legal/LegalFooter'
 
 export default function DashboardPage() {
   const { user, profile, profileComplete, loading } = useAuth()
@@ -167,6 +168,9 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Legal Disclaimer */}
+        <DashboardLegalFooter />
       </div>
     </div>
   )

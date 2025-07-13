@@ -28,7 +28,12 @@
     "lighthouse:mobile": "lhci autorun --config=.lighthouserc.js",
     "lighthouse:desktop": "lhci collect --settings.emulatedFormFactor=desktop && lhci assert",
     "perf:audit": "npm run lighthouse && npm run test:e2e",
-    "perf:report": "lhci collect --config=.lighthouserc.js --numberOfRuns=5"
+    "perf:report": "lhci collect --config=.lighthouserc.js --numberOfRuns=5",
+    "rls-test": "tsx scripts/rls-smoke.ts",
+    "load-test": "tsx scripts/load-webhook.ts",
+    "security:audit": "npm run rls-test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@sentry/nextjs": "9.33.0",
@@ -74,8 +79,18 @@
     "msw": "^2.0.0",
     "tailwindcss": "^4",
     "tslib": "^2.8.1",
+    "tsx": "^4.6.0",
     "typescript": "^5",
     "web-vitals": "^5.0.3",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "logrocket": "^8.0.0",
+    "@storybook/addon-essentials": "^8.0.0",
+    "@storybook/addon-interactions": "^8.0.0",
+    "@storybook/addon-links": "^8.0.0",
+    "@storybook/blocks": "^8.0.0",
+    "@storybook/nextjs": "^8.0.0",
+    "@storybook/react": "^8.0.0",
+    "@storybook/testing-library": "^0.2.0",
+    "storybook": "^8.0.0"
   }
 }
