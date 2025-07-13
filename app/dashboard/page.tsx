@@ -11,11 +11,6 @@ export default function DashboardPage() {
   // E2E/Test環境での認証バイパス
   if (process.env.NODE_ENV === 'test' || process.env.CI === 'true') {
     const mockUser = { email: 'test@example.com' }
-    const mockProfile = {
-      support_type: 'full',
-      insurance: 'none',
-      monthly_income_target: 85000
-    }
     
     return (
       <div className="min-h-screen bg-gray-50">
