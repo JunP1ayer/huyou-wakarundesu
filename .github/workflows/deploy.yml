@@ -33,7 +33,7 @@ jobs:
         run: npm ci --legacy-peer-deps
         
       - name: Run ESLint
-        run: npm run lint --max-warnings=50
+        run: npm run lint
         
       - name: Run TypeScript type check
         run: npm run type-check
@@ -42,6 +42,9 @@ jobs:
         run: npm test -- --coverage=${{ matrix.coverage }} --watchAll=false
         env:
           CI: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           
       - name: Upload coverage reports
         if: matrix.coverage == true
@@ -86,6 +89,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CI: true
           
       - name: Upload E2E test results
