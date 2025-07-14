@@ -20,20 +20,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:e2e": "playwright test --reporter=line",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
-    "test:all": "npm run test:ci && npm run test:e2e",
-    "lighthouse": "lhci autorun",
-    "lighthouse:mobile": "lhci autorun --config=.lighthouserc.js",
-    "lighthouse:desktop": "lhci collect --settings.emulatedFormFactor=desktop && lhci assert",
-    "perf:audit": "npm run lighthouse && npm run test:e2e",
-    "perf:report": "lhci collect --config=.lighthouserc.js --numberOfRuns=5",
+    "test:all": "npm run test:ci",
     "rls-test": "tsx scripts/rls-smoke.ts",
     "load-test": "tsx scripts/load-webhook.ts",
-    "security:audit": "npm run rls-test",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "security:audit": "npm run rls-test"
   },
   "dependencies": {
     "@sentry/nextjs": "9.33.0",
@@ -58,10 +48,8 @@
   "devDependencies": {
     "@babel/core": "^7.28.0",
     "@eslint/eslintrc": "^3",
-    "@lhci/cli": "^0.15.1",
     "@opentelemetry/core": "^2.0.1",
     "@opentelemetry/sdk-trace-base": "^2.0.1",
-    "@playwright/test": "^1.40.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^16.0.0",
@@ -82,15 +70,6 @@
     "tsx": "^4.6.0",
     "typescript": "^5",
     "web-vitals": "^5.0.3",
-    "zod": "^3.22.4",
-    "logrocket": "^8.0.0",
-    "@storybook/addon-essentials": "^8.0.0",
-    "@storybook/addon-interactions": "^8.0.0",
-    "@storybook/addon-links": "^8.0.0",
-    "@storybook/blocks": "^8.0.0",
-    "@storybook/nextjs": "^8.0.0",
-    "@storybook/react": "^8.0.0",
-    "@storybook/testing-library": "^0.2.0",
-    "storybook": "^8.0.0"
+    "zod": "^3.22.4"
   }
 }
