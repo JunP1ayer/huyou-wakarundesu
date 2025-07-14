@@ -1,0 +1,14 @@
+name: Validate Versions
+on: [pull_request]
+jobs:
+  semver-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20          # npm 10.x 同梱
+      - run: npm install -g npm@latest
+      - name: Check invalid versions
+        run: |
+          node .github/scripts/validate-semver.js

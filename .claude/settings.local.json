@@ -51,7 +51,11 @@
       "Bash(git merge:*)",
       "Bash(git tag:*)",
       "Bash(gh:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(gemini:*)",
+      "Bash(grep:*)",
+      "Bash(killall:*)",
+      "Bash(pnpm list:*)"
     ],
     "deny": []
   }
